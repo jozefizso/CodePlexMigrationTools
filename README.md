@@ -1,12 +1,15 @@
-A small suite of tools that should help migrating data from CodePlex.
+A collection of tools that should help migrating data from CodePlex.
 Use at your own risk. The web scraping from the CodePlex site is probably very brittle, and may need to be updated.
 
 ### IssueMigrator
 
 Migrates issues from a CodePlex project to GitHub.
 
-Syntax: IssueMigrator.exe [CodePlexProject] [GitHubOwner] [GitHubRepository] [GitHubAccessToken] 
-Example: IssueMigrator.exe OxyPlot oxyplot oxyplot c2bdeb09f9acb52c154fb21ab6a3239452ad615e
+Syntax:  
+`IssueMigrator.exe [CodePlexProject] [GitHubOwner] [GitHubRepository] [GitHubAccessToken]`
+
+Example:  
+`IssueMigrator.exe OxyPlot oxyplot oxyplot c2bdeb09f9acb52c154fb21ab6a3239452ad615e`
 
 The GitHub repository should be created before executing the migration command.
 
@@ -14,8 +17,11 @@ The GitHub repository should be created before executing the migration command.
 
 Migrates a CodePlex discussion forum to UserEcho. 
 
-Syntax: `DiscussionMigrator.exe [CodePlexProject] [UserEchoAccessToken]`
-Example: `DiscussionMigrator.exe OxyPlot cc0cb52b4645b90efe42e94d025dc21343bf0ac9`
+Syntax:  
+`DiscussionMigrator.exe [CodePlexProject] [UserEchoAccessToken]`
+
+Example:  
+`DiscussionMigrator.exe OxyPlot cc0cb52b4645b90efe42e94d025dc21343bf0ac9`
 
 Note: 
 - you need an upgraded plan to get access to the API access token.
