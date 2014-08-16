@@ -7,8 +7,6 @@ Migrates issues from a CodePlex project to GitHub.
 
 ```
 IssueMigrator.exe [CodePlexProject] [GitHubOwner] [GitHubRepository] [GitHubAccessToken]
-
-Example:
 IssueMigrator.exe oxyplot oxyplot oxyplot c2bdeb09f9acb52c154fb21ab6a3239452ad615e
 ```
 
@@ -21,8 +19,6 @@ Migrates a CodePlex discussion forum to UserEcho.
 
 ```
 DiscussionMigrator.exe [CodePlexProject] [UserEchoAccessToken]
-
-Example: 
 DiscussionMigrator.exe oxyplot cc0cb52b4645b90efe42e94d025dc21343bf0ac9
 ```
 
