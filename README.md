@@ -5,11 +5,11 @@ Use at your own risk. The web scraping from the CodePlex site is probably very b
 
 Migrates issues from a CodePlex project to GitHub.
 
-`IssueMigrator.exe [CodePlexProject] [GitHubOwner] [GitHubRepository] [GitHubAccessToken]`
+```
+IssueMigrator.exe [CodePlexProject] [GitHubOwner] [GitHubRepository] [GitHubAccessToken]
+```
 
-Example:  
-`IssueMigrator.exe oxyplot oxyplot oxyplot c2bdeb09f9acb52c154fb21ab6a3239452ad615e`  
-(the token has been scrambled)
+Example: `IssueMigrator.exe oxyplot oxyplot oxyplot c2bdeb09f9acb52c154fb21ab6a3239452ad615e` (the token has been scrambled)
 
 Note:
 - The GitHub repository should be created before executing the migration command.
@@ -18,11 +18,11 @@ Note:
 
 Migrates a CodePlex discussion forum to UserEcho. 
 
-`DiscussionMigrator.exe [CodePlexProject] [UserEchoAccessToken]`
+```
+DiscussionMigrator.exe [CodePlexProject] [UserEchoAccessToken]
+```
 
-Example:  
-`DiscussionMigrator.exe oxyplot cc0cb52b4645b90efe42e94d025dc21343bf0ac9`  
-(the token has been scrambled)
+Example: `DiscussionMigrator.exe oxyplot cc0cb52b4645b90efe42e94d025dc21343bf0ac9` (the token has been scrambled)
 
 Note: 
 - You need an upgraded plan to get access to the API access token.
