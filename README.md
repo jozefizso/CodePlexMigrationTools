@@ -7,11 +7,12 @@ Migrates issues from a CodePlex project to GitHub.
 
 `IssueMigrator.exe [CodePlexProject] [GitHubOwner] [GitHubRepository] [GitHubAccessToken]`
 
-The GitHub repository should be created before executing the migration command.
-
 Example:  
 `IssueMigrator.exe oxyplot oxyplot oxyplot c2bdeb09f9acb52c154fb21ab6a3239452ad615e`  
 (the token has been scrambled)
+
+Note:
+- The GitHub repository should be created before executing the migration command.
 
 ### DiscussionMigrator
 
@@ -24,10 +25,10 @@ Example:
 (the token has been scrambled)
 
 Note: 
-- you need an upgraded plan to get access to the API access token.
-- the discussions will be added to the "General" forum (hard coded)
-- the feedback type will be set to "Questions" (hard coded)
-- a "CodePlex" tag will be added to each discussion (hard coded)
+- You need an upgraded plan to get access to the API access token.
+- The discussions will be added to the "General" forum (hard coded)
+- The feedback type will be set to "Questions" (hard coded)
+- A "CodePlex" tag will be added to each discussion (hard coded). This tag must be added to the UserEcho forum.
 
 ### How to migrate a Mercurial repository from CodePlex to GitHub
 
