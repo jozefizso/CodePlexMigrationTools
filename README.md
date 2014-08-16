@@ -1,4 +1,4 @@
-A collection of tools that should help migrating data from CodePlex.
+A collection of .NET tools that should help migrating data from CodePlex.
 Use at your own risk. The web scraping from the CodePlex site is probably very brittle, and may need to be updated.
 
 ### IssueMigrator
