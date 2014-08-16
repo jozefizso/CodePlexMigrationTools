@@ -5,23 +5,23 @@ Use at your own risk. The web scraping from the CodePlex site is probably very b
 
 Migrates issues from a CodePlex project to GitHub.
 
-Syntax:  
 `IssueMigrator.exe [CodePlexProject] [GitHubOwner] [GitHubRepository] [GitHubAccessToken]`
 
-Example:  
-`IssueMigrator.exe OxyPlot oxyplot oxyplot c2bdeb09f9acb52c154fb21ab6a3239452ad615e`
-
 The GitHub repository should be created before executing the migration command.
+
+Example:  
+`IssueMigrator.exe oxyplot oxyplot oxyplot c2bdeb09f9acb52c154fb21ab6a3239452ad615e`  
+(the token has been scrambled)
 
 ### DiscussionMigrator
 
 Migrates a CodePlex discussion forum to UserEcho. 
 
-Syntax:  
 `DiscussionMigrator.exe [CodePlexProject] [UserEchoAccessToken]`
 
 Example:  
-`DiscussionMigrator.exe OxyPlot cc0cb52b4645b90efe42e94d025dc21343bf0ac9`
+`DiscussionMigrator.exe oxyplot cc0cb52b4645b90efe42e94d025dc21343bf0ac9`  
+(the token has been scrambled)
 
 Note: 
 - you need an upgraded plan to get access to the API access token.
