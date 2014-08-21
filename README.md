@@ -31,3 +31,5 @@ Note:
 ### How to migrate a Mercurial repository from CodePlex to GitHub
 
 Simly use the import repository functionality in GitHub
+
+Remember to [normalize the line endings](https://help.github.com/articles/dealing-with-line-endings)!
