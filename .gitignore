@@ -17,6 +17,7 @@ build/
 bld/
 [Bb]in/
 [Oo]bj/
+Output/
 
 # Roslyn cache directories
 *.ide/
@@ -98,6 +99,9 @@ _TeamCity*
 # NCrunch
 _NCrunch_*
 .*crunch*.local.xml
+
+# NuGet
+NuGet.exe
 
 # MightyMoose
 *.mm.*
