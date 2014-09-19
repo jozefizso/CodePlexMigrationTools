@@ -97,7 +97,6 @@
                 else
                 {
                     Console.WriteLine("Tag not found: " + tag);
-                    return 5;
                 }
             }
 
@@ -120,12 +119,17 @@
             return 0;
         }
 
-        private static void ListNames(string title, JsonObject[] forums)
+        private static void ListNames(string title, JsonObject[] items)
         {
-            Console.WriteLine(title);
-            foreach (var forum in forums)
+            if (items == null)
             {
-                Console.WriteLine(forum["name"]);
+                return;
+            }
+
+            Console.WriteLine(title);
+            foreach (var item in items)
+            {
+                Console.WriteLine(item["name"]);
             }
 
             Console.WriteLine();
@@ -133,7 +137,7 @@
 
         private static JsonObject GetByName(IEnumerable<JsonObject> types, string name)
         {
-            return types.FirstOrDefault(t => string.Equals(t["name"], name));
+            return types != null ? types.FirstOrDefault(t => string.Equals(t["name"], name)) : null;
         }
 
         private static bool Failed(this JsonObject response)
@@ -145,7 +149,7 @@
         {
             var path = string.Format(format, args);
             var response = (JsonObject)client.Get(path);
-            if (response.Failed())
+            if (response.Failed() || !response.Keys.Contains("data"))
             {
                 return null;
             }
@@ -163,14 +167,28 @@
 
         private static JsonObject CreateTopic(long forumId, long typeId, string title, string content, long categoryId = 0, IList<long> tagIds = null)
         {
-            var topic = new
+            object topic;
+            if (tagIds != null && tagIds.Count > 0)
             {
-                header = title,
-                description = content,
-                type = typeId,
-                category = categoryId,
-                tags = tagIds != null ? tagIds.ToArray() : null
-            };
+                topic = new
+                {
+                    header = title,
+                    description = content,
+                    type = typeId,
+                    category = categoryId,
+                    tags = tagIds.ToArray()
+                };
+            }
+            else
+            {
+                topic = new
+                {
+                    header = title,
+                    description = content,
+                    type = typeId,
+                    category = categoryId,
+                };
+            }
 
             var response = (JsonObject)client.Post("forums/" + forumId + "/topics", topic);
             if (response.Failed())
@@ -186,10 +204,10 @@
             var discussions = GetDiscussions().Reverse().ToArray();
             var existingTopics = GetArray("forums/{0}/topics", forumId);
 
-            for (int i = 490; i < discussions.Length; i++)
+            for (int i = 0; i < discussions.Length; i++)
             {
                 var discussionId = discussions[i];
-                var isAlreadyMigrated = existingTopics.Any(
+                var isAlreadyMigrated = existingTopics != null && existingTopics.Any(
                     x =>
                     {
                         var d = (string)x["description"];
@@ -214,7 +232,7 @@
                         Console.WriteLine(e.Message);
                     }
                 }
-                
+
                 if (discussion == null)
                 {
                     Console.WriteLine("Could not get discussion from CodePlex, aborting migration.");
@@ -222,7 +240,7 @@
                 }
 
                 Console.WriteLine("{0}/{1} #{2} '{3}'", i + 1, discussions.Length, discussion.Id, discussion.Title);
-                var codePlexIssueUrl = "http://oxyplot.codeplex.com/discussions/" + discussion.Id;
+                var codePlexIssueUrl = string.Format("http://{0}.codeplex.com/discussions/{1}", codePlexProject, discussion.Id);
 
                 var description = new StringBuilder();
                 description.AppendFormat("<div><strong>This discussion was imported from <a href=\"{0}\" target=\"_blank\">{1}</a></strong></div>", codePlexIssueUrl, "CodePlex");
