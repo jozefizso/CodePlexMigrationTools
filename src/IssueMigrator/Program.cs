@@ -1,4 +1,6 @@
-﻿namespace CodePlexIssueMigrator
+﻿using System.Threading;
+
+namespace CodePlexIssueMigrator
 {
     using System;
     using System.Collections.Generic;
@@ -27,6 +29,8 @@
 
         private static GitHubClient client;
         private static HttpClient httpClient;
+
+        private static readonly Random _rnd = new Random();
 
         static int Main(string[] args)
         {
@@ -61,11 +65,6 @@
             var issues = GetIssues();
             foreach (var issue in issues)
             {
-                if (issue.IsClosed())
-                {
-                    continue;
-                }
-
                 var codePlexIssueUrl = string.Format("http://{0}.codeplex.com/workitem/{1}", codePlexProject, issue.Id);
                 var description = new StringBuilder();
                 description.AppendFormat("**This issue was imported from [CodePlex]({0})**", codePlexIssueUrl);
@@ -84,13 +83,15 @@
 
                 var labels = new List<string>();
 
-                if (issue.Type == "Feature")
+                switch (issue.Type)
                 {
-                    labels.Add("enhancement");
+                    case "Feature":
+                        labels.Add("enhancement");
+                        break;
+                    case "Issue":
+                        labels.Add("bug");
+                        break;
                 }
-
-                // if (issue.Type == "Issue")
-                //    labels.Add("bug");
                 // if (issue.Impact == "Low" || issue.Impact == "Medium" || issue.Impact == "High")
                 //    labels.Add(issue.Impact);
                 var gitHubIssue = await CreateIssue(issue.Title, description.ToString().Trim(), labels);
@@ -99,16 +100,20 @@
                 {
                     await CloseIssue(gitHubIssue);
                 }
+
+                Thread.Sleep(_rnd.Next(800, 1500));
             }
         }
 
         static IEnumerable<CodePlexIssue> GetIssues(int size = 100)
         {
-            // Find the number of discussions
-            var numberOfDiscussions = GetNumberOfItems();
+            // Find the number of items
+            var numberOfItems = GetNumberOfItems();
+
+            Console.WriteLine("Found {0} items", numberOfItems);
 
             // Calculate number of pages
-            var pages = (int)Math.Ceiling((double)numberOfDiscussions / size);
+            var pages = (int)Math.Ceiling((double)numberOfItems / size);
 
             for (int page = 0; page < pages; page++)
             {
@@ -135,7 +140,7 @@
 
         private static int GetNumberOfItems()
         {
-            var url = string.Format("https://{0}.codeplex.com/workitem/list/advanced", codePlexProject);
+            var url = string.Format("https://{0}.codeplex.com/workitem/list/advanced?keyword=&status=All&type=All&priority=All&release=All&assignedTo=All&component=All&sortField=LastUpdatedDate&sortDirection=Descending&page=0&reasonClosed=All",codePlexProject);
             var html = httpClient.GetStringAsync(url).Result;
             return int.Parse(GetMatch(html, "Selected\">(\\d+)</span> items"));
         }
