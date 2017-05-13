@@ -11,6 +11,7 @@
     using System.Web;
 
     using RestSharp;
+    using Octokit;
 
     public static class Program
     {
@@ -20,6 +21,14 @@
         // UserEcho API access token
         private static string userEchoAccessToken;
 
+        // GitHub owner (organization or user)
+        private static string gitHubOwner;
+
+        // GitHub repository
+        private static string gitHubRepository;
+
+        private static string gitHubPassword;
+
         // Default UserEcho forum settings
         private static string Forum = "General";
         private static string FeedbackType = "Questions";
@@ -28,90 +37,31 @@
         private static bool CleanForum = false;
 
         private static HttpClient httpClient;
-        private static UserEcho.Client client;
+        private static GitHubClient client;
 
         static int Main(string[] args)
         {
-            if (args.Length < 2)
+            if (args.Length < 3)
             {
-                Console.WriteLine("Missing arguments: [CodeplexProject] [UserEchoAccessToken]");
+                Console.WriteLine("Missing arguments: [CodeplexProject] [GitHubOwner] [GitHubRepository] [GitHubPassword]");
                 return 1;
             }
 
             codePlexProject = args[0];
-            userEchoAccessToken = args[1];
+
+            gitHubOwner = args[1];
+            gitHubRepository = args[2];
+            gitHubPassword = args[3];
 
             httpClient = new HttpClient();
-            client = new UserEcho.Client(userEchoAccessToken);
 
-            var forums = GetArray("forums");
-            ListNames("Forums:", forums);
+            Console.WriteLine("Migrating discussion from {0} to GitHub:", codePlexProject);
+            
+            var credentials = new Credentials(gitHubOwner, gitHubPassword);
+            var connection = new Connection(new ProductHeaderValue("CodeplexDiscussionMigrator")) { Credentials = credentials };
+            client = new GitHubClient(connection);
 
-            var forumObject = GetByName(forums, Forum);
-            if (forumObject == null)
-            {
-                Console.WriteLine("Forum not found: " + Forum);
-                return 2;
-            }
-
-            var forumId = (long)forumObject["id"];
-
-            var feedbackTypes = GetArray("forums/{0}/types", forumId);
-            ListNames("Feedback types:", feedbackTypes);
-
-            var feedbackTypeObject = GetByName(feedbackTypes, FeedbackType);
-            if (feedbackTypeObject == null)
-            {
-                Console.WriteLine("Feedback type not found: " + FeedbackType);
-                return 3;
-            }
-
-            var feedbackTypeId = (long)feedbackTypeObject["id"];
-
-            var categories = GetArray("forums/{0}/categories", forumId);
-            ListNames("Categories:", categories);
-
-            long categoryId = 0;
-            if (Category != null)
-            {
-                var categoryObject = GetByName(categories, Category);
-                if (categoryObject == null)
-                {
-                    Console.WriteLine("Category not found: " + Category);
-                    return 4;
-                }
-
-                categoryId = (long)categoryObject["id"];
-            }
-
-            var tags = GetArray("forums/{0}/tags", forumId);
-            ListNames("Tags:", tags);
-            var tagIds = new List<long>();
-            foreach (var tag in Tags)
-            {
-                var tabObject = GetByName(tags, tag);
-                if (tabObject != null)
-                {
-                    tagIds.Add((long)tabObject["id"]);
-                }
-                else
-                {
-                    Console.WriteLine("Tag not found: " + tag);
-                }
-            }
-
-            if (CleanForum)
-            {
-                var topics = GetArray("forums/{0}/topics", forumId);
-                foreach (var topic in topics)
-                {
-                    var topicId = (long)topic["id"];
-                    Delete(topicId, "forums/{0}/topics", forumId);
-                }
-            }
-
-            Console.WriteLine("Migrating discussion from {0} to UserEcho:", codePlexProject);
-            MigrateDiscussions(forumId, feedbackTypeId, categoryId, tagIds).Wait();
+            MigrateDiscussions().Wait();
 
             Console.WriteLine();
             Console.WriteLine("Completed successfully.");
@@ -145,79 +95,34 @@
             return (string)response["status"] != "success";
         }
 
-        private static JsonObject[] GetArray(string format, params object[] args)
-        {
-            var path = string.Format(format, args);
-            var response = (JsonObject)client.Get(path);
-            if (response.Failed() || !response.Keys.Contains("data"))
-            {
+
+        private static Issue CreateIssue(string title, string body, List<string> labels) {
+            var issue = new NewIssue(title) { Body = body };
+            issue.Labels.Add("codeplex discussion");
+            foreach (var label in labels) {
+                if (!string.IsNullOrEmpty(label)) {
+                    issue.Labels.Add(label);
+                }
+            }
+
+            try {
+                Random rnd = new System.Random();
+                System.Threading.Thread.Sleep(rnd.Next(2, 10) * 1000);
+                Issue newIssue = client.Issue.Create(gitHubOwner, gitHubRepository, issue).Result;
+                return newIssue;
+            } catch (System.Exception ex) {
+                Console.WriteLine("ERROR: "+ ex.Message);
                 return null;
             }
-
-            return ((JsonArray)response["data"]).Cast<JsonObject>().ToArray();
         }
 
-        private static bool Delete(long id, string format, params object[] args)
-        {
-            //// http://feedback.userecho.com/topic/489503-delete-topic-by-the-api/
-            var path = string.Format(format, args);
-            var response = (JsonObject)client.Delete(path, new { id });
-            return !response.Failed();
-        }
-
-        private static JsonObject CreateTopic(long forumId, long typeId, string title, string content, long categoryId = 0, IList<long> tagIds = null)
-        {
-            object topic;
-            if (tagIds != null && tagIds.Count > 0)
-            {
-                topic = new
-                {
-                    header = title,
-                    description = content,
-                    type = typeId,
-                    category = categoryId,
-                    tags = tagIds.ToArray()
-                };
-            }
-            else
-            {
-                topic = new
-                {
-                    header = title,
-                    description = content,
-                    type = typeId,
-                    category = categoryId,
-                };
-            }
-
-            var response = (JsonObject)client.Post("forums/" + forumId + "/topics", topic);
-            if (response.Failed())
-            {
-                return null;
-            }
-
-            return (JsonObject)response["data"];
-        }
-
-        static async Task MigrateDiscussions(long forumId, long typeId, long categoryId, IList<long> tagIds)
+        static async Task MigrateDiscussions()
         {
             var discussions = GetDiscussions().Reverse().ToArray();
-            var existingTopics = GetArray("forums/{0}/topics", forumId);
-
+            
             for (int i = 0; i < discussions.Length; i++)
             {
                 var discussionId = discussions[i];
-                var isAlreadyMigrated = existingTopics != null && existingTopics.Any(
-                    x =>
-                    {
-                        var d = (string)x["description"];
-                        return d.Contains("codeplex.com/discussions/" + discussionId);
-                    });
-                if (isAlreadyMigrated)
-                {
-                    Console.WriteLine("{0}/{1} is already migrated", i + 1, discussions.Length);
-                    continue;
-                }
 
                 CodePlexTopic discussion = null;
                 for (int retry = 1; retry <= 5; retry++)
@@ -257,16 +162,10 @@
                 {
                     try
                     {
-                        var topic = CreateTopic(
-                            forumId,
-                            typeId,
-                            discussion.Title,
-                            description.ToString(),
-                            categoryId,
-                            tagIds);
+                        var topic = CreateIssue(discussion.Title, description.ToString(), new List<string>()); // {"CodePlex Discussion"});
                         if (topic == null)
                         {
-                            Console.WriteLine("  Could not create topic at userecho.com.");
+                            Console.WriteLine("  Could not create topic at GitHub.");
                             continue;
                         }
 
@@ -292,7 +191,7 @@
 
             for (int page = 0; page < pages; page++)
             {
-                var url = string.Format("http://{0}.codeplex.com/discussions?size={1}&page={2}", codePlexProject, size, page);
+                var url = string.Format("http://{0}.codeplex.com/discussions?showUnansweredThreadsOnly=true&size={1}&page={2}", codePlexProject, size, page);
                 var html = httpClient.GetStringAsync(url).Result;
                 foreach (var id in GetMatches(html, "<a href=\"http://" + codePlexProject + ".codeplex.com/discussions/(\\d+)\">"))
                 {
@@ -303,7 +202,7 @@
 
         private static int GetNumberOfDiscussions()
         {
-            var url = string.Format("https://{0}.codeplex.com/discussions", codePlexProject);
+            var url = string.Format("https://{0}.codeplex.com/discussions?showUnansweredThreadsOnly=true", codePlexProject);
             var html = httpClient.GetStringAsync(url).Result;
             return int.Parse(GetMatch(html, "Selected\">(\\d+)</span> discussions"));
         }
