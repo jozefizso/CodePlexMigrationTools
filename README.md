@@ -15,21 +15,19 @@ Note:
 
 ### DiscussionMigrator
 
-Migrates a CodePlex discussion forum to UserEcho. 
+Migrates a CodePlex discussion forum to GitHub. 
 
 ```
-DiscussionMigrator.exe [CodePlexProject] [UserEchoAccessToken]
-DiscussionMigrator.exe oxyplot cc0cb52b4645b90efe42e94d025dc21343bf0ac9
+DiscussionMigrator.exe [CodePlexProject] [GitHubOwner] [GitHubRepository] [GitHubPassword]
+DiscussionMigrator.exe outlookgooglecalendarsync phw198 OutlookGoogleCalendarSync yourGitPassword
 ```
 
 Note: 
-- You need an upgraded plan to get access to the API access token.
-- The discussions will be added to the "General" forum (hard coded)
-- The feedback type will be set to "Questions" (hard coded)
-- A "CodePlex" tag will be added to each discussion (hard coded). This tag must be added to the UserEcho forum.
+- A "codeplex discussion" tag will be added to each issue (hard coded).
+- Only unanswered discussions will be migrated.
 
 ### How to migrate a Mercurial repository from CodePlex to GitHub
 
-Simly use the import repository functionality in GitHub.
+Simply use the import repository functionality in GitHub.
 
 Add `.gitattributes`, `.gitignore` and remember to [normalize the line endings](https://help.github.com/articles/dealing-with-line-endings)!
