@@ -145,7 +145,7 @@
                 }
 
                 Console.WriteLine("{0}/{1} #{2} '{3}'", i + 1, discussions.Length, discussion.Id, discussion.Title);
-                var codePlexIssueUrl = string.Format("http://{0}.codeplex.com/discussions/{1}", codePlexProject, discussion.Id);
+                var codePlexIssueUrl = string.Format("https://{0}.codeplex.com/discussions/{1}", codePlexProject, discussion.Id);
 
                 var description = new StringBuilder();
                 description.AppendFormat("<div><strong>This discussion was imported from <a href=\"{0}\" target=\"_blank\">{1}</a></strong></div>", codePlexIssueUrl, "CodePlex");
@@ -153,7 +153,7 @@
                 {
                     description.AppendLine("<hr/>");
                     description.AppendLine("<div>");
-                    description.AppendFormat(CultureInfo.InvariantCulture, "<p><strong><a href=\"http://www.codeplex.com/site/users/view/{0}\" target=\"_blank\">{0}</a></strong> wrote at {1:yyyy-MM-dd HH:mm}:</p>", comment.Author, comment.Time);
+                    description.AppendFormat(CultureInfo.InvariantCulture, "<p><strong><a href=\"https://www.codeplex.com/site/users/view/{0}\" target=\"_blank\">{0}</a></strong> wrote at {1:yyyy-MM-dd HH:mm}:</p>", comment.Author, comment.Time);
                     description.Append(comment.Content);
                     description.AppendLine("</div>");
                 }
@@ -191,9 +191,9 @@
 
             for (int page = 0; page < pages; page++)
             {
-                var url = string.Format("http://{0}.codeplex.com/discussions?showUnansweredThreadsOnly=true&size={1}&page={2}", codePlexProject, size, page);
+                var url = string.Format("https://{0}.codeplex.com/discussions?showUnansweredThreadsOnly=true&size={1}&page={2}", codePlexProject, size, page);
                 var html = httpClient.GetStringAsync(url).Result;
-                foreach (var id in GetMatches(html, "<a href=\"http://" + codePlexProject + ".codeplex.com/discussions/(\\d+)\">"))
+                foreach (var id in GetMatches(html, "<a href=\"https://" + codePlexProject + ".codeplex.com/discussions/(\\d+)\">"))
                 {
                     yield return int.Parse(id);
                 }
@@ -209,7 +209,7 @@
 
         private static async Task<CodePlexTopic> GetDiscussion(int id)
         {
-            var url = string.Format("http://{0}.codeplex.com/discussions/{1}", codePlexProject, id);
+            var url = string.Format("https://{0}.codeplex.com/discussions/{1}", codePlexProject, id);
             var html = await httpClient.GetStringAsync(url);
             var title = GetMatch(html, "<h1 class=\"page_title WordWrapBreakWord\">(.*?)</h1>").Trim();
             var topic = new CodePlexTopic { Id = id, Title = DecodeHtml(title) };

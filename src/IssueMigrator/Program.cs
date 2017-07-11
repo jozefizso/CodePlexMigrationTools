@@ -65,18 +65,18 @@ namespace CodePlexIssueMigrator
             var issues = GetIssues();
             foreach (var issue in issues)
             {
-                var codePlexIssueUrl = string.Format("http://{0}.codeplex.com/workitem/{1}", codePlexProject, issue.Id);
+                var codePlexIssueUrl = string.Format("https://{0}.codeplex.com/workitem/{1}", codePlexProject, issue.Id);
                 var description = new StringBuilder();
                 description.AppendFormat("**This issue was imported from [CodePlex]({0})**", codePlexIssueUrl);
                 description.AppendLine();
                 description.AppendLine();
-                description.AppendFormat(CultureInfo.InvariantCulture, "**[{0}](http://www.codeplex.com/site/users/view/{0})** wrote {1:yyyy-MM-dd} at {1:HH:mm}\r\n", issue.ReportedBy, issue.Time);
+                description.AppendFormat(CultureInfo.InvariantCulture, "**[{0}](https://www.codeplex.com/site/users/view/{0})** wrote {1:yyyy-MM-dd} at {1:HH:mm}\r\n", issue.ReportedBy, issue.Time);
                 description.Append(issue.Description);
                 foreach (var comment in issue.Comments)
                 {
                     description.AppendLine();
                     description.AppendLine();
-                    description.AppendFormat(CultureInfo.InvariantCulture, "**[{0}](http://www.codeplex.com/site/users/view/{0})** wrote {1:yyyy-MM-dd} at {1:HH:mm}\r\n", comment.Author, comment.Time);
+                    description.AppendFormat(CultureInfo.InvariantCulture, "**[{0}](https://www.codeplex.com/site/users/view/{0})** wrote {1:yyyy-MM-dd} at {1:HH:mm}\r\n", comment.Author, comment.Time);
                     description.Append(comment.Content);
                     // await CreateComment(gitHubIssue.Number, comment.Content);
                 }
@@ -117,7 +117,7 @@ namespace CodePlexIssueMigrator
 
             for (int page = 0; page < pages; page++)
             {
-                var url = string.Format("http://{0}.codeplex.com/workitem/list/advanced?keyword=&status=All&type=All&priority=All&release=All&assignedTo=All&component=All&sortField=Id&sortDirection=Ascending&size={1}&page={2}", codePlexProject, size, page);
+                var url = string.Format("https://{0}.codeplex.com/workitem/list/advanced?keyword=&status=All&type=All&priority=All&release=All&assignedTo=All&component=All&sortField=Id&sortDirection=Ascending&size={1}&page={2}", codePlexProject, size, page);
                 var html = httpClient.GetStringAsync(url).Result;
                 foreach (var issue in GetMatches(html, "<tr id=\"row_checkbox_\\d+\" class=\"CheckboxRow\">(.*?)</tr>"))
                 {
@@ -147,7 +147,7 @@ namespace CodePlexIssueMigrator
 
         static async Task<CodePlexIssue> GetIssue(int number)
         {
-            var url = string.Format("http://{0}.codeplex.com/workitem/{1}", codePlexProject, number);
+            var url = string.Format("https://{0}.codeplex.com/workitem/{1}", codePlexProject, number);
             var html = await httpClient.GetStringAsync(url);
 
             var description = GetMatch(html, "descriptionContent\">(.*?)</div>");
