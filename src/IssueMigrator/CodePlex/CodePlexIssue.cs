@@ -1,3 +1,5 @@
+using System;
+
 namespace CodePlexIssueMigrator
 {
     using System.Collections.Generic;
@@ -18,7 +20,7 @@ namespace CodePlexIssueMigrator
 
         public List<CodeplexComment> Comments { get; private set; }
 
-        public object Time { get; set; }
+        public DateTime Time { get; set; }
 
         public string ReportedBy { get; set; }
 

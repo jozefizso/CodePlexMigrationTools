@@ -1,4 +1,8 @@
-﻿using System.Threading;
+﻿using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using IssueMigrator;
 
 namespace CodePlexIssueMigrator
 {
@@ -15,6 +19,8 @@ namespace CodePlexIssueMigrator
 
     public class Program
     {
+        private const string GitHubAvatar_CodeplexAvatar_User = "https://avatars.githubusercontent.com/u/30236365?s=192";
+
         // CodePlex project
         private static string codePlexProject;
 
@@ -65,21 +71,27 @@ namespace CodePlexIssueMigrator
             var issues = GetIssues();
             foreach (var issue in issues)
             {
-                var codePlexIssueUrl = string.Format("https://{0}.codeplex.com/workitem/{1}", codePlexProject, issue.Id);
-                var description = new StringBuilder();
-                description.AppendFormat("**This issue was imported from [CodePlex]({0})**", codePlexIssueUrl);
-                description.AppendLine();
-                description.AppendLine();
-                description.AppendFormat(CultureInfo.InvariantCulture, "**[{0}](https://www.codeplex.com/site/users/view/{0})** wrote {1:yyyy-MM-dd} at {1:HH:mm}\r\n", issue.ReportedBy, issue.Time);
-                description.Append(issue.Description);
-                foreach (var comment in issue.Comments)
-                {
-                    description.AppendLine();
-                    description.AppendLine();
-                    description.AppendFormat(CultureInfo.InvariantCulture, "**[{0}](https://www.codeplex.com/site/users/view/{0})** wrote {1:yyyy-MM-dd} at {1:HH:mm}\r\n", comment.Author, comment.Time);
-                    description.Append(comment.Content);
-                    // await CreateComment(gitHubIssue.Number, comment.Content);
-                }
+                var issueTemplate = new IssueTemplate();
+
+                var codePlexIssueUrl = $"https://{codePlexProject}.codeplex.com/workitem/{issue.Id}";
+
+                issueTemplate.CodeplexAvatar = GitHubAvatar_CodeplexAvatar_User;
+                issueTemplate.OriginalUrl = codePlexIssueUrl;
+                issueTemplate.OriginalUserName = issue.ReportedBy;
+                issueTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{issue.ReportedBy}";
+                issueTemplate.OriginalDate = String.Format("{0:yyyy-MM-dd} at {0:HH:mm}", issue.Time);
+                issueTemplate.OriginalDateUtc = issue.Time.ToUniversalTime().ToString("s");
+                issueTemplate.OriginalBody = issue.Description;
+
+                var issueBody = issueTemplate.Format();
+                //foreach (var comment in issue.Comments)
+                //{
+                //    description.AppendLine();
+                //    description.AppendLine();
+                //    description.AppendFormat(CultureInfo.InvariantCulture, "**[{0}](https://www.codeplex.com/site/users/view/{0})** wrote {1:yyyy-MM-dd} at {1:HH:mm}\r\n", comment.Author, comment.Time);
+                //    description.Append(comment.Content);
+                //    // await CreateComment(gitHubIssue.Number, comment.Content);
+                //}
 
                 var labels = new List<string>();
 
@@ -94,12 +106,8 @@ namespace CodePlexIssueMigrator
                 }
                 // if (issue.Impact == "Low" || issue.Impact == "Medium" || issue.Impact == "High")
                 //    labels.Add(issue.Impact);
-                var gitHubIssue = await CreateIssue(issue.Title, description.ToString().Trim(), labels);
-
-                if (issue.IsClosed())
-                {
-                    await CloseIssue(gitHubIssue);
-                }
+                var gitHubIssue = await CreateIssue(issue.Title, issueBody.Trim(), labels, issue.Time.ToUniversalTime(), issue.IsClosed());
+                Console.WriteLine($"  Issue import task '{gitHubIssue.Id}': {gitHubIssue.ImportIssuesUrl}");
 
                 Thread.Sleep(_rnd.Next(800, 1500));
             }
@@ -196,19 +204,26 @@ namespace CodePlexIssueMigrator
             return text.Trim();
         }
 
-        private static async Task<Issue> CreateIssue(string title, string body, List<string> labels)
+        private static async Task<IssueImport> CreateIssue(string title, string body, List<string> labels, DateTime createdAt, bool isClosed)
         {
-            var issue = new NewIssue(title) { Body = body };
-            issue.Labels.Add("CodePlex");
+            var issue = new NewIssueImport(title);
+            issue.Issue.Body = body;
+            issue.Issue.CreatedAt = createdAt;
+            issue.Issue.Labels.Add("CodePlex");
             foreach (var label in labels)
             {
                 if (!string.IsNullOrEmpty(label))
                 {
-                    issue.Labels.Add(label);
+                    issue.Issue.Labels.Add(label);
                 }
             }
 
-            return await client.Issue.Create(gitHubOwner, gitHubRepository, issue);
+            if (isClosed)
+            {
+                issue.Issue.Closed = true;
+            }
+
+            return await client.IssueImport.StartImport(gitHubOwner, gitHubRepository, issue);
         }
 
         private static async Task CreateComment(int number, string comment)
@@ -250,6 +265,34 @@ namespace CodePlexIssueMigrator
             foreach (Match match in Regex.Matches(input, expression, RegexOptions.Multiline | RegexOptions.Singleline))
             {
                 yield return match.Groups[1].Value;
+            }
+        }
+
+        private static string GetIssueTemplate()
+        {
+            return GetTemplate("issue");
+        }
+
+        private static string GetCommentTemplate()
+        {
+            return GetTemplate("comment");
+        }
+
+        private static string GetTemplate(string templateName)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+
+            using (var stream = assembly.GetManifestResourceStream($"IssueMigrator.Templates.{templateName}.md.txt"))
+            {
+                if (stream == null)
+                {
+                    throw new InvalidOperationException($"Teamplate with name '{templateName}.md.txt' does not exists as embedded resource in assembly.");
+                }
+
+                using (var reader = new StreamReader(stream))
+                {
+                    return reader.ReadToEnd();
+                }
             }
         }
     }

@@ -1,0 +1,7 @@
+﻿<img src="${codeplex_avatar}" align="left" width="96" height="96" /> **Issue by [${original_user_name}](${original_user_url})**
+<em datetime="${original_date_utc}">${original_date}</em>
+_Originally opened as ${original_url}_
+
+----
+
+${original_body}
