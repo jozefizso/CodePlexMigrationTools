@@ -71,6 +71,8 @@ namespace CodePlexIssueMigrator
             var issues = GetIssues();
             foreach (var issue in issues)
             {
+                var import = new NewIssueImport(issue.Title);
+
                 var issueTemplate = new IssueTemplate();
 
                 var codePlexIssueUrl = $"https://{codePlexProject}.codeplex.com/workitem/{issue.Id}";
@@ -79,11 +81,13 @@ namespace CodePlexIssueMigrator
                 issueTemplate.OriginalUrl = codePlexIssueUrl;
                 issueTemplate.OriginalUserName = issue.ReportedBy;
                 issueTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{issue.ReportedBy}";
-                issueTemplate.OriginalDate = String.Format("{0:yyyy-MM-dd} at {0:HH:mm}", issue.Time);
-                issueTemplate.OriginalDateUtc = issue.Time.ToUniversalTime().ToString("s");
+                issueTemplate.OriginalDate = issue.ReportedAtUtc.ToString("R");
+                issueTemplate.OriginalDateUtc = issue.ReportedAtUtc.ToString("s");
                 issueTemplate.OriginalBody = issue.Description;
 
                 var issueBody = issueTemplate.Format();
+                import.Issue.Body = issueBody.Trim();
+
                 //foreach (var comment in issue.Comments)
                 //{
                 //    description.AppendLine();
@@ -93,21 +97,27 @@ namespace CodePlexIssueMigrator
                 //    // await CreateComment(gitHubIssue.Number, comment.Content);
                 //}
 
-                var labels = new List<string>();
-
+                import.Issue.Labels.Add("CodePlex");
                 switch (issue.Type)
                 {
                     case "Feature":
-                        labels.Add("enhancement");
+                        import.Issue.Labels.Add("enhancement");
                         break;
                     case "Issue":
-                        labels.Add("bug");
+                        import.Issue.Labels.Add("bug");
                         break;
                 }
                 // if (issue.Impact == "Low" || issue.Impact == "Medium" || issue.Impact == "High")
                 //    labels.Add(issue.Impact);
-                var gitHubIssue = await CreateIssue(issue.Title, issueBody.Trim(), labels, issue.Time.ToUniversalTime(), issue.IsClosed());
-                Console.WriteLine($"  Issue import task '{gitHubIssue.Id}': {gitHubIssue.ImportIssuesUrl}");
+
+                import.Issue.CreatedAt = issue.ReportedAtUtc.UtcDateTime;
+                if (issue.IsClosed())
+                {
+                    import.Issue.Closed = true;
+                }
+
+                var gitHubIssue = await StartIssueImport(import);
+                Console.WriteLine($"  Issue import task '{gitHubIssue.Id}': {gitHubIssue.Url}");
 
                 Thread.Sleep(_rnd.Next(800, 1500));
             }
@@ -162,14 +172,14 @@ namespace CodePlexIssueMigrator
             var reportedBy = GetMatch(html, "ReportedByLink.*?>(.*?)</a>");
 
             var reportedTimeString = GetMatch(html, "ReportedOnDateTime.*?title=\"(.*?)\"");
-            DateTime reportedTime;
-            DateTime.TryParse(
+            DateTimeOffset reportedTime;
+            DateTimeOffset.TryParse(
                 reportedTimeString,
                 CultureInfo.InvariantCulture,
-                DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal,
+                DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal,
                 out reportedTime);
 
-            var issue = new CodePlexIssue { Description = HtmlToMarkdown(description), ReportedBy = reportedBy, Time = reportedTime };
+            var issue = new CodePlexIssue { Description = HtmlToMarkdown(description), ReportedBy = reportedBy, ReportedAtUtc = reportedTime.ToUniversalTime() };
 
             for (int i = 0; ; i++)
             {
@@ -204,25 +214,8 @@ namespace CodePlexIssueMigrator
             return text.Trim();
         }
 
-        private static async Task<IssueImport> CreateIssue(string title, string body, List<string> labels, DateTime createdAt, bool isClosed)
+        private static async Task<IssueImport> StartIssueImport(NewIssueImport issue)
         {
-            var issue = new NewIssueImport(title);
-            issue.Issue.Body = body;
-            issue.Issue.CreatedAt = createdAt;
-            issue.Issue.Labels.Add("CodePlex");
-            foreach (var label in labels)
-            {
-                if (!string.IsNullOrEmpty(label))
-                {
-                    issue.Issue.Labels.Add(label);
-                }
-            }
-
-            if (isClosed)
-            {
-                issue.Issue.Closed = true;
-            }
-
             return await client.IssueImport.StartImport(gitHubOwner, gitHubRepository, issue);
         }
 

@@ -20,7 +20,7 @@ namespace CodePlexIssueMigrator
 
         public List<CodeplexComment> Comments { get; private set; }
 
-        public DateTime Time { get; set; }
+        public DateTimeOffset ReportedAtUtc { get; set; }
 
         public string ReportedBy { get; set; }
 
