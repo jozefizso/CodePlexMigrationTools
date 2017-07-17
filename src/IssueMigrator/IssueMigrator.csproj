@@ -51,6 +51,7 @@
   <ItemGroup>
     <Compile Include="CodePlex\CodeplexComment.cs" />
     <Compile Include="CodePlex\CodePlexIssue.cs" />
+    <Compile Include="CommentTemplate.cs" />
     <Compile Include="IssueTemplate.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

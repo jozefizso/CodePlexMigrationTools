@@ -88,14 +88,21 @@ namespace CodePlexIssueMigrator
                 var issueBody = issueTemplate.Format();
                 import.Issue.Body = issueBody.Trim();
 
-                //foreach (var comment in issue.Comments)
-                //{
-                //    description.AppendLine();
-                //    description.AppendLine();
-                //    description.AppendFormat(CultureInfo.InvariantCulture, "**[{0}](https://www.codeplex.com/site/users/view/{0})** wrote {1:yyyy-MM-dd} at {1:HH:mm}\r\n", comment.Author, comment.Time);
-                //    description.Append(comment.Content);
-                //    // await CreateComment(gitHubIssue.Number, comment.Content);
-                //}
+                foreach (var comment in issue.Comments)
+                {
+                    var commentTemplate = new CommentTemplate();
+                    commentTemplate.UserAvatar = $"https://github.com/identicons/{comment.Author}.png";
+                    commentTemplate.OriginalUserName = comment.Author; 
+                    commentTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{comment.Author}";
+                    commentTemplate.OriginalDate = comment.Time.ToString("R");
+                    commentTemplate.OriginalDateUtc = comment.Time.ToString("s");
+                    commentTemplate.OriginalBody = comment.Content;
+
+                    var commentBody = commentTemplate.Format();
+                    var newComment = new NewIssueImportComment(commentBody);
+                    newComment.CreatedAt = comment.Time;
+                    import.Comments.Add(newComment);
+                }
 
                 import.Issue.Labels.Add("CodePlex");
                 switch (issue.Type)
