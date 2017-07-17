@@ -1,4 +1,4 @@
-﻿<img src="${codeplex_avatar}" align="left" width="96" height="96" /> **Issue by [${original_user_name}](${original_user_url})**
+﻿<img src="${codeplex_avatar}" align="left" width="96" height="96" /> <strong>Issue by <a href="${original_user_url}" rel="author">${original_user_name}</a></strong>
 <em datetime="${original_date_utc}">${original_date}</em>
 _Originally opened as ${original_url}_
 
