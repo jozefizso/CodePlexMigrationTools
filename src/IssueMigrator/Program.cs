@@ -1,6 +1,4 @@
 ﻿using System.IO;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using IssueMigrator;
 
@@ -118,8 +116,9 @@ namespace CodePlexIssueMigrator
                 //    labels.Add(issue.Impact);
 
                 import.Issue.CreatedAt = issue.ReportedAtUtc.UtcDateTime;
-                if (issue.IsClosed())
+                if (issue.ClosedAtUtc.HasValue)
                 {
+                    import.Issue.ClosedAt = issue.ClosedAtUtc.Value.UtcDateTime;
                     import.Issue.Closed = true;
                 }
 
@@ -152,7 +151,7 @@ namespace CodePlexIssueMigrator
                     var impact = GetMatch(issue, "<td class=\"Severity\">(.+?)</td>");
                     var title = GetMatch(issue, "<a id=\"TitleLink.*>(.*?)</a>");
                     Console.WriteLine("{0} ({1}) : {2}", id, status, title);
-                    var codeplexIssue = GetIssue(id).Result;
+                    var codeplexIssue = GetIssue(id, status).Result;
                     codeplexIssue.Id = id;
                     codeplexIssue.Title = HtmlToMarkdown(title);
                     codeplexIssue.Status = status;
@@ -170,7 +169,7 @@ namespace CodePlexIssueMigrator
             return int.Parse(GetMatch(html, "Selected\">(\\d+)</span> items"));
         }
 
-        static async Task<CodePlexIssue> GetIssue(int number)
+        static async Task<CodePlexIssue> GetIssue(int number, string status)
         {
             var url = string.Format("https://{0}.codeplex.com/workitem/{1}", codePlexProject, number);
             var html = await httpClient.GetStringAsync(url);
@@ -187,7 +186,7 @@ namespace CodePlexIssueMigrator
                 out reportedTime);
 
             var issue = new CodePlexIssue { Description = HtmlToMarkdown(description), ReportedBy = reportedBy, ReportedAtUtc = reportedTime.ToUniversalTime() };
-
+            
             for (int i = 0; ; i++)
             {
                 var commentMatch = Regex.Match(html, @"CommentContainer" + i + "\">.*", RegexOptions.Multiline | RegexOptions.Singleline);
@@ -211,6 +210,39 @@ namespace CodePlexIssueMigrator
                 issue.Comments.Add(new CodeplexComment { Content = HtmlToMarkdown(content), Author = author, Time = time });
             }
 
+            if (status == "Closed")
+            {
+                var closedTimeString = GetMatch(html, "ClosedOnDateTime.*?title=\"(.*?)\"");
+                DateTimeOffset closedTime;
+                if (DateTimeOffset.TryParse(closedTimeString, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal, out closedTime))
+                {
+                    issue.ClosedAtUtc = closedTime;
+                }
+                
+                var closedCommentMatch = Regex.Match(html, "<div id=\"ClosedDiv\".*", RegexOptions.Multiline | RegexOptions.Singleline);
+                if (closedCommentMatch.Success)
+                {
+                    var closedCommentHtml = closedCommentMatch.Value;
+                    var author = GetMatch(closedCommentHtml, "id=\"ClosedByLink\".*?>(.*?)</a>");
+
+                    var timeString = GetMatch(closedCommentHtml, "class=\"smartDate\" title=\"(.*?)\"");
+                    DateTime time;
+                    DateTime.TryParse(
+                        timeString,
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal,
+                        out time);
+
+                    var content = GetMatch(closedCommentHtml, "markDownOutput \">(.*?)</div>");
+                    content = HtmlToMarkdown(content);
+
+                    if (!string.IsNullOrWhiteSpace(content))
+                    {
+                        issue.Comments.Add(new CodeplexComment { Content = content, Author = author, Time = time });
+                    }
+                }
+            }
+
             return issue;
         }
 
@@ -231,17 +263,6 @@ namespace CodePlexIssueMigrator
             await client.Issue.Comment.Create(gitHubOwner, gitHubRepository, number, comment);
         }
 
-        private static async Task CloseIssue(Issue issue)
-        {
-            var issueUpdate = new IssueUpdate { State = ItemState.Closed };
-            foreach (var label in issue.Labels)
-            {
-                issueUpdate.Labels.Add(label.Name);
-            }
-
-            await client.Issue.Update(gitHubOwner, gitHubRepository, issue.Number, issueUpdate);
-        }
-
         /// <summary>
         /// Gets the value of the first group by matching the specified string with the specified regular expression.
         /// </summary>
@@ -251,7 +272,12 @@ namespace CodePlexIssueMigrator
         private static string GetMatch(string input, string expression)
         {
             var titleMatch = Regex.Match(input, expression, RegexOptions.Multiline | RegexOptions.Singleline);
-            return titleMatch.Groups[1].Value;
+            if (titleMatch.Groups.Count >= 2)
+            {
+                return titleMatch.Groups[1].Value;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -265,34 +291,6 @@ namespace CodePlexIssueMigrator
             foreach (Match match in Regex.Matches(input, expression, RegexOptions.Multiline | RegexOptions.Singleline))
             {
                 yield return match.Groups[1].Value;
-            }
-        }
-
-        private static string GetIssueTemplate()
-        {
-            return GetTemplate("issue");
-        }
-
-        private static string GetCommentTemplate()
-        {
-            return GetTemplate("comment");
-        }
-
-        private static string GetTemplate(string templateName)
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-
-            using (var stream = assembly.GetManifestResourceStream($"IssueMigrator.Templates.{templateName}.md.txt"))
-            {
-                if (stream == null)
-                {
-                    throw new InvalidOperationException($"Teamplate with name '{templateName}.md.txt' does not exists as embedded resource in assembly.");
-                }
-
-                using (var reader = new StreamReader(stream))
-                {
-                    return reader.ReadToEnd();
-                }
             }
         }
     }

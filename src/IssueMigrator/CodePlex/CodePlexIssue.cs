@@ -22,11 +22,13 @@ namespace CodePlexIssueMigrator
 
         public DateTimeOffset ReportedAtUtc { get; set; }
 
+        public DateTimeOffset? ClosedAtUtc { get; set; }
+
         public string ReportedBy { get; set; }
 
-        public bool IsClosed()
+        public bool IsClosed
         {
-            return this.Status == "Closed";
+            get { return this.ClosedAtUtc.HasValue; }
         }
     }
 }
