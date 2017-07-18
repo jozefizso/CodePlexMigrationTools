@@ -47,10 +47,13 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Web" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CodePlex\CodeplexComment.cs" />
     <Compile Include="CodePlex\CodePlexIssue.cs" />
+    <Compile Include="CodePlex\CodeplexXmlWriter.cs" />
+    <Compile Include="CodePlex\XmlHtmlContent.cs" />
     <Compile Include="CommentTemplate.cs" />
     <Compile Include="IssueTemplate.cs" />
     <Compile Include="Program.cs" />

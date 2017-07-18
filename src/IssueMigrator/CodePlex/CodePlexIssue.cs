@@ -1,8 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Xml.Serialization;
 
 namespace CodePlexIssueMigrator
 {
-    using System.Collections.Generic;
 
     public class CodePlexIssue
     {
@@ -13,7 +14,7 @@ namespace CodePlexIssueMigrator
 
         public int Id { get; set; }
         public string Title { get; set; }
-        public string Description { get; set; }
+        public string DescriptionHtml { get; set; }
         public string Status { get; set; }
         public string Type { get; set; }
         public string Impact { get; set; }
@@ -26,6 +27,7 @@ namespace CodePlexIssueMigrator
 
         public string ReportedBy { get; set; }
 
+        [XmlIgnore]
         public bool IsClosed
         {
             get { return this.ClosedAtUtc.HasValue; }

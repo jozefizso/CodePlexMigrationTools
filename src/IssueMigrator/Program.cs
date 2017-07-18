@@ -1,6 +1,10 @@
-﻿using System.IO;
+﻿using System.Diagnostics;
+using System.IO;
 using System.Threading;
+using System.Xml;
+using System.Xml.Serialization;
 using IssueMigrator;
+using IssueMigrator.CodePlex;
 
 namespace CodePlexIssueMigrator
 {
@@ -50,18 +54,53 @@ namespace CodePlexIssueMigrator
             gitHubAccessToken = args[3];
 
             httpClient = new HttpClient();
+            CacheIssues(codePlexProject);
 
-            var credentials = new Credentials(gitHubAccessToken);
-            var connection = new Connection(new ProductHeaderValue("CodeplexIssueMigrator")) { Credentials = credentials };
-            client = new GitHubClient(connection);
-            Console.WriteLine("Source: {0}.codeplex.com", codePlexProject);
-            Console.WriteLine("Destination: github.com/{0}/{1}", gitHubOwner, gitHubRepository);
-            Console.WriteLine("Migrating issues:");
-            MigrateIssues().Wait();
+            //var credentials = new Credentials(gitHubAccessToken);
+            //var connection = new Connection(new ProductHeaderValue("CodeplexIssueMigrator")) { Credentials = credentials };
+            //client = new GitHubClient(connection);
+            //Console.WriteLine("Source: {0}.codeplex.com", codePlexProject);
+            //Console.WriteLine("Destination: github.com/{0}/{1}", gitHubOwner, gitHubRepository);
+            //Console.WriteLine("Migrating issues:");
+            //MigrateIssues().Wait();
 
             Console.WriteLine();
             Console.WriteLine("Completed successfully.");
             return 0;
+        }
+
+        static void CacheIssues(string codeplexProject)
+        {
+            if (!Directory.Exists(".cache"))
+            {
+                Directory.CreateDirectory(".cache");
+            }
+
+            var issues = GetIssues();
+            foreach (var issue in issues)
+            {
+                var xmlSerializer = new XmlSerializer(typeof(CodePlexIssue));
+
+                using (var xmlWriter = new CodeplexXmlWriter($@".cache\{codeplexProject}_{issue.Id}.xml", Encoding.UTF8))
+                {
+                    xmlWriter.Formatting = Formatting.Indented;
+                    xmlWriter.IndentChar = ' ';
+                    xmlWriter.Indentation = 2;
+
+                    xmlSerializer.Serialize(xmlWriter, issue);
+                }
+
+                using (var xmlReader = new XmlTextReader($@".cache\{codeplexProject}_{issue.Id}.xml"))
+                {
+                    xmlReader.DtdProcessing = DtdProcessing.Prohibit;
+                    xmlReader.WhitespaceHandling = WhitespaceHandling.All;
+
+                    var issue2 = xmlSerializer.Deserialize(xmlReader) as CodePlexIssue;
+
+                    Debug.Assert(issue2 != null, "Issue cannot be deserialized.");
+                    Debug.Assert(issue.DescriptionHtml == issue2.DescriptionHtml);
+                }
+            }
         }
 
         static async Task MigrateIssues()
@@ -81,7 +120,7 @@ namespace CodePlexIssueMigrator
                 issueTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{issue.ReportedBy}";
                 issueTemplate.OriginalDate = issue.ReportedAtUtc.ToString("R");
                 issueTemplate.OriginalDateUtc = issue.ReportedAtUtc.ToString("s");
-                issueTemplate.OriginalBody = issue.Description;
+                issueTemplate.OriginalBody = issue.DescriptionHtml;
 
                 var issueBody = issueTemplate.Format();
                 import.Issue.Body = issueBody.Trim();
@@ -94,7 +133,7 @@ namespace CodePlexIssueMigrator
                     commentTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{comment.Author}";
                     commentTemplate.OriginalDate = comment.Time.ToString("R");
                     commentTemplate.OriginalDateUtc = comment.Time.ToString("s");
-                    commentTemplate.OriginalBody = comment.Content;
+                    commentTemplate.OriginalBody = comment.ContentHtml;
 
                     var commentBody = commentTemplate.Format();
                     var newComment = new NewIssueImportComment(commentBody);
@@ -185,7 +224,7 @@ namespace CodePlexIssueMigrator
                 DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal,
                 out reportedTime);
 
-            var issue = new CodePlexIssue { Description = HtmlToMarkdown(description), ReportedBy = reportedBy, ReportedAtUtc = reportedTime.ToUniversalTime() };
+            var issue = new CodePlexIssue { DescriptionHtml = HtmlToMarkdown(description), ReportedBy = reportedBy, ReportedAtUtc = reportedTime.ToUniversalTime() };
             
             for (int i = 0; ; i++)
             {
@@ -207,7 +246,7 @@ namespace CodePlexIssueMigrator
                     out time);
 
                 var content = GetMatch(commentHtml, "markDownOutput \">(.*?)</div>");
-                issue.Comments.Add(new CodeplexComment { Content = HtmlToMarkdown(content), Author = author, Time = time });
+                issue.Comments.Add(new CodeplexComment { ContentHtml = HtmlToMarkdown(content), Author = author, Time = time });
             }
 
             if (status == "Closed")
@@ -238,7 +277,7 @@ namespace CodePlexIssueMigrator
 
                     if (!string.IsNullOrWhiteSpace(content))
                     {
-                        issue.Comments.Add(new CodeplexComment { Content = content, Author = author, Time = time });
+                        issue.Comments.Add(new CodeplexComment { ContentHtml = content, Author = author, Time = time });
                     }
                 }
             }
