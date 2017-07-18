@@ -131,13 +131,13 @@ namespace CodePlexIssueMigrator
                     commentTemplate.UserAvatar = $"https://github.com/identicons/{comment.Author}.png";
                     commentTemplate.OriginalUserName = comment.Author; 
                     commentTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{comment.Author}";
-                    commentTemplate.OriginalDate = comment.Time.ToString("R");
-                    commentTemplate.OriginalDateUtc = comment.Time.ToString("s");
-                    commentTemplate.OriginalBody = comment.ContentHtml;
+                    commentTemplate.OriginalDate = comment.CreatedAt.ToString("R");
+                    commentTemplate.OriginalDateUtc = comment.CreatedAt.ToString("s");
+                    commentTemplate.OriginalBody = comment.BodyHtml;
 
                     var commentBody = commentTemplate.Format();
                     var newComment = new NewIssueImportComment(commentBody);
-                    newComment.CreatedAt = comment.Time;
+                    newComment.CreatedAt = comment.CreatedAt.UtcDateTime;
                     import.Comments.Add(newComment);
                 }
 
@@ -246,7 +246,7 @@ namespace CodePlexIssueMigrator
                     out time);
 
                 var content = GetMatch(commentHtml, "markDownOutput \">(.*?)</div>");
-                issue.Comments.Add(new CodeplexComment { ContentHtml = HtmlToMarkdown(content), Author = author, Time = time });
+                issue.Comments.Add(new CodeplexComment { BodyHtml = HtmlToMarkdown(content), Author = author, CreatedAt = time });
             }
 
             if (status == "Closed")
@@ -277,7 +277,7 @@ namespace CodePlexIssueMigrator
 
                     if (!string.IsNullOrWhiteSpace(content))
                     {
-                        issue.Comments.Add(new CodeplexComment { ContentHtml = content, Author = author, Time = time });
+                        issue.Comments.Add(new CodeplexComment { BodyHtml = content, Author = author, CreatedAt = time });
                     }
                 }
             }
