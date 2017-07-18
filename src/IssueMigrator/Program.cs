@@ -1,24 +1,21 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Net.Http;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
+using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
-using IssueMigrator;
-using IssueMigrator.CodePlex;
+using CodeplexMigration.IssueMigrator.Codeplex;
+using Octokit;
 
-namespace CodePlexIssueMigrator
+namespace CodeplexMigration.IssueMigrator
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Globalization;
-    using System.Net.Http;
-    using System.Text;
-    using System.Text.RegularExpressions;
-    using System.Threading.Tasks;
-    using System.Web;
-
-    using Octokit;
-
     public class Program
     {
         private const string GitHubAvatar_CodeplexAvatar_User = "https://avatars.githubusercontent.com/u/30236365?s=192";

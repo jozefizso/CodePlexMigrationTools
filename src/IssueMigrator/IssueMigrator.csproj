@@ -7,7 +7,7 @@
     <ProjectGuid>{3AEF872B-B2BC-46A3-96B6-10982BCE9C92}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>IssueMigrator</RootNamespace>
+    <RootNamespace>CodeplexMigration.IssueMigrator</RootNamespace>
     <AssemblyName>IssueMigrator</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace IssueMigrator
+namespace CodeplexMigration.IssueMigrator
 {
     public class IssueTemplate
     {
@@ -43,7 +40,7 @@ namespace IssueMigrator
         {
             var assembly = Assembly.GetExecutingAssembly();
 
-            using (var stream = assembly.GetManifestResourceStream($"IssueMigrator.Templates.{templateName}.md.txt"))
+            using (var stream = assembly.GetManifestResourceStream($"CodeplexMigration.IssueMigrator.Templates.{templateName}.md.txt"))
             {
                 if (stream == null)
                 {

@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Xml;
 
-namespace IssueMigrator.CodePlex
+namespace CodeplexMigration.IssueMigrator.Codeplex
 {
     /// <summary>
     /// Special XmlTextWriter that preserves spaces in elements that contains HTML data.

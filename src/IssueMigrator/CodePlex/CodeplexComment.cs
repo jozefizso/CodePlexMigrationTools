@@ -1,6 +1,6 @@
 using System;
 
-namespace CodePlexIssueMigrator
+namespace CodeplexMigration.IssueMigrator.Codeplex
 {
     public class CodeplexComment
     {

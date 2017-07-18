@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
 
-namespace CodePlexIssueMigrator
+namespace CodeplexMigration.IssueMigrator.Codeplex
 {
-
     public class CodeplexIssue
     {
         public CodeplexIssue()
