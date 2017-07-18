@@ -50,9 +50,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CodePlex\CodeplexComment.cs" />
-    <Compile Include="CodePlex\CodePlexIssue.cs" />
-    <Compile Include="CodePlex\CodeplexXmlWriter.cs" />
+    <Compile Include="Codeplex\CodeplexComment.cs" />
+    <Compile Include="Codeplex\CodeplexIssue.cs" />
+    <Compile Include="Codeplex\CodeplexXmlWriter.cs" />
     <Compile Include="CommentTemplate.cs" />
     <Compile Include="IssueTemplate.cs" />
     <Compile Include="Program.cs" />

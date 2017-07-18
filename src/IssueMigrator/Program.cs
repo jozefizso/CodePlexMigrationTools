@@ -79,7 +79,7 @@ namespace CodePlexIssueMigrator
             var issues = GetIssues();
             foreach (var issue in issues)
             {
-                var xmlSerializer = new XmlSerializer(typeof(CodePlexIssue));
+                var xmlSerializer = new XmlSerializer(typeof(CodeplexIssue));
 
                 using (var xmlWriter = new CodeplexXmlWriter($@".cache\{codeplexProject}_{issue.Id}.xml", Encoding.UTF8))
                 {
@@ -95,7 +95,7 @@ namespace CodePlexIssueMigrator
                     xmlReader.DtdProcessing = DtdProcessing.Prohibit;
                     xmlReader.WhitespaceHandling = WhitespaceHandling.All;
 
-                    var issue2 = xmlSerializer.Deserialize(xmlReader) as CodePlexIssue;
+                    var issue2 = xmlSerializer.Deserialize(xmlReader) as CodeplexIssue;
 
                     Debug.Assert(issue2 != null, "Issue cannot be deserialized.");
                     Debug.Assert(issue.DescriptionHtml == issue2.DescriptionHtml);
@@ -118,8 +118,8 @@ namespace CodePlexIssueMigrator
                 issueTemplate.OriginalUrl = codePlexIssueUrl;
                 issueTemplate.OriginalUserName = issue.ReportedBy;
                 issueTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{issue.ReportedBy}";
-                issueTemplate.OriginalDate = issue.ReportedAtUtc.ToString("R");
-                issueTemplate.OriginalDateUtc = issue.ReportedAtUtc.ToString("s");
+                issueTemplate.OriginalDate = issue.ReportedAt.ToString("R");
+                issueTemplate.OriginalDateUtc = issue.ReportedAt.ToString("s");
                 issueTemplate.OriginalBody = issue.DescriptionHtml;
 
                 var issueBody = issueTemplate.Format();
@@ -154,10 +154,10 @@ namespace CodePlexIssueMigrator
                 // if (issue.Impact == "Low" || issue.Impact == "Medium" || issue.Impact == "High")
                 //    labels.Add(issue.Impact);
 
-                import.Issue.CreatedAt = issue.ReportedAtUtc.UtcDateTime;
-                if (issue.ClosedAtUtc.HasValue)
+                import.Issue.CreatedAt = issue.ReportedAt.UtcDateTime;
+                if (issue.ClosedAt.HasValue)
                 {
-                    import.Issue.ClosedAt = issue.ClosedAtUtc.Value.UtcDateTime;
+                    import.Issue.ClosedAt = issue.ClosedAt.Value.UtcDateTime;
                     import.Issue.Closed = true;
                 }
 
@@ -168,7 +168,7 @@ namespace CodePlexIssueMigrator
             }
         }
 
-        static IEnumerable<CodePlexIssue> GetIssues(int size = 100)
+        static IEnumerable<CodeplexIssue> GetIssues(int size = 100)
         {
             // Find the number of items
             var numberOfItems = GetNumberOfItems();
@@ -208,7 +208,7 @@ namespace CodePlexIssueMigrator
             return int.Parse(GetMatch(html, "Selected\">(\\d+)</span> items"));
         }
 
-        static async Task<CodePlexIssue> GetIssue(int number, string status)
+        static async Task<CodeplexIssue> GetIssue(int number, string status)
         {
             var url = string.Format("https://{0}.codeplex.com/workitem/{1}", codePlexProject, number);
             var html = await httpClient.GetStringAsync(url);
@@ -224,7 +224,7 @@ namespace CodePlexIssueMigrator
                 DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal,
                 out reportedTime);
 
-            var issue = new CodePlexIssue { DescriptionHtml = HtmlToMarkdown(description), ReportedBy = reportedBy, ReportedAtUtc = reportedTime.ToUniversalTime() };
+            var issue = new CodeplexIssue { DescriptionHtml = HtmlToMarkdown(description), ReportedBy = reportedBy, ReportedAt = reportedTime.ToUniversalTime() };
             
             for (int i = 0; ; i++)
             {
@@ -255,7 +255,7 @@ namespace CodePlexIssueMigrator
                 DateTimeOffset closedTime;
                 if (DateTimeOffset.TryParse(closedTimeString, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal, out closedTime))
                 {
-                    issue.ClosedAtUtc = closedTime;
+                    issue.ClosedAt = closedTime;
                 }
                 
                 var closedCommentMatch = Regex.Match(html, "<div id=\"ClosedDiv\".*", RegexOptions.Multiline | RegexOptions.Singleline);
