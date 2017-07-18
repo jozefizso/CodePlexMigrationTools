@@ -53,8 +53,9 @@
     <Compile Include="Codeplex\CodeplexComment.cs" />
     <Compile Include="Codeplex\CodeplexIssue.cs" />
     <Compile Include="Codeplex\CodeplexXmlWriter.cs" />
-    <Compile Include="CommentTemplate.cs" />
-    <Compile Include="IssueTemplate.cs" />
+    <Compile Include="Templates\CommentTemplate.cs" />
+    <Compile Include="Templates\TemplateBase.cs" />
+    <Compile Include="Templates\IssueTemplate.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

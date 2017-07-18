@@ -3,10 +3,18 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 
-namespace CodeplexMigration.IssueMigrator
+namespace CodeplexMigration.IssueMigrator.Templates
 {
-    public class IssueTemplate
+    public abstract class TemplateBase
     {
+        protected TemplateBase(string templateName)
+        {
+            this.TemplateName = templateName;
+        }
+
+        public string TemplateName { get; private set; }
+
+
         public string CodeplexAvatar { get; set; }
         public string OriginalUserName { get; set; }
         public string OriginalUserUrl { get; set; }
@@ -17,9 +25,15 @@ namespace CodeplexMigration.IssueMigrator
 
         public string Format()
         {
-            var template = GetIssueTemplate();
+            var template = GetTemplate(this.TemplateName);
             
             var sb = new StringBuilder(template);
+            this.OnFormatTemplate(sb);
+            return sb.ToString();
+        }
+
+        protected virtual void OnFormatTemplate(StringBuilder sb)
+        {
             sb.Replace("${codeplex_avatar}", this.CodeplexAvatar);
             sb.Replace("${original_user_name}", this.OriginalUserName);
             sb.Replace("${original_user_url}", this.OriginalUserUrl);
@@ -27,13 +41,6 @@ namespace CodeplexMigration.IssueMigrator
             sb.Replace("${original_date}", this.OriginalDate);
             sb.Replace("${original_url}", this.OriginalUrl);
             sb.Replace("${original_body}", this.OriginalBody);
-
-            return sb.ToString();
-        }
-
-        private static string GetIssueTemplate()
-        {
-            return GetTemplate("issue");
         }
 
         private static string GetTemplate(string templateName)

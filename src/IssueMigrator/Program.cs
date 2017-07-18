@@ -12,6 +12,7 @@ using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
 using CodeplexMigration.IssueMigrator.Codeplex;
+using CodeplexMigration.IssueMigrator.Templates;
 using Octokit;
 
 namespace CodeplexMigration.IssueMigrator
