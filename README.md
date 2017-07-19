@@ -31,3 +31,11 @@ Note:
 Simply use the import repository functionality in GitHub.
 
 Add `.gitattributes`, `.gitignore` and remember to [normalize the line endings](https://help.github.com/articles/dealing-with-line-endings)!
+
+
+## License
+
+[MIT](LICENSE)
+
+Copyright © 2014 Oystein Bjorke  
+Copyright © 2017 Jozef Izso
