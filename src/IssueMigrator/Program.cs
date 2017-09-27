@@ -54,13 +54,13 @@ namespace CodeplexMigration.IssueMigrator
             httpClient = new HttpClient();
             await CacheIssues(codePlexProject);
 
-            //var credentials = new Credentials(gitHubAccessToken);
-            //var connection = new Connection(new ProductHeaderValue("CodeplexIssueMigrator")) { Credentials = credentials };
-            //client = new GitHubClient(connection);
-            //Console.WriteLine("Source: {0}.codeplex.com", codePlexProject);
-            //Console.WriteLine("Destination: github.com/{0}/{1}", gitHubOwner, gitHubRepository);
-            //Console.WriteLine("Migrating issues:");
-            //MigrateIssues().Wait();
+            var credentials = new Credentials(gitHubAccessToken);
+            var connection = new Connection(new ProductHeaderValue("CodeplexIssueMigrator")) { Credentials = credentials };
+            client = new GitHubClient(connection);
+            Console.WriteLine("Source: {0}.codeplex.com", codePlexProject);
+            Console.WriteLine("Destination: github.com/{0}/{1}", gitHubOwner, gitHubRepository);
+            Console.WriteLine("Migrating issues:");
+            await MigrateIssuesFromCache();
 
             Console.WriteLine();
             Console.WriteLine("Completed successfully.");
@@ -102,9 +102,20 @@ namespace CodeplexMigration.IssueMigrator
             }
         }
 
+        static async Task MigrateIssuesFromCache()
+        {
+            var issues = GetIssuesFromCache();
+            await MigrateIssues(issues);
+        }
+
         static async Task MigrateIssues()
         {
             var issues = await GetIssues();
+            await MigrateIssues(issues);
+        }
+
+        static async Task MigrateIssues(IEnumerable<CodeplexIssue> issues)
+        {
             foreach (var issue in issues)
             {
                 var import = new NewIssueImport(issue.Title);
@@ -161,10 +172,29 @@ namespace CodeplexMigration.IssueMigrator
                 }
 
                 var gitHubIssue = await StartIssueImport(import);
-                Console.WriteLine($"  Issue import task '{gitHubIssue.Id}': {gitHubIssue.Url}");
-
-                Thread.Sleep(_rnd.Next(800, 1500));
+                Console.WriteLine($"  Issue {issue.Id} is imported with task '{gitHubIssue.Id}': {gitHubIssue.Url}");
             }
+        }
+
+        static IEnumerable<CodeplexIssue> GetIssuesFromCache()
+        {
+            var files = Directory.EnumerateFiles(".cache", "*.xml");
+            var issues = new List<CodeplexIssue>();
+            var xmlSerializer = new XmlSerializer(typeof(CodeplexIssue));
+
+            foreach (var file in files)
+            {
+                using (var xmlReader = new XmlTextReader(file))
+                {
+                    var issue = xmlSerializer.Deserialize(xmlReader) as CodeplexIssue;
+                    if (issue != null)
+                    {
+                        issues.Add(issue);
+                    }
+                }
+            }
+
+            return issues;
         }
 
         static async Task<IEnumerable<CodeplexIssue>> GetIssues(int size = 100)
