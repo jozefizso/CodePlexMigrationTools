@@ -25,9 +25,9 @@ namespace CodeplexMigration.IssueMigrator.Codeplex
 
         public ICollection<CodeplexComment> Comments { get; }
 
-        public DateTimeOffset ReportedAt { get; set; }
+        public DateTime ReportedAt { get; set; }
 
-        public DateTimeOffset? ClosedAt { get; set; }
+        public DateTime? ClosedAt { get; set; }
 
         public string ReportedBy { get; set; }
 

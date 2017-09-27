@@ -96,7 +96,8 @@ namespace CodeplexMigration.IssueMigrator
                     var issue2 = xmlSerializer.Deserialize(xmlReader) as CodeplexIssue;
 
                     Debug.Assert(issue2 != null, "Issue cannot be deserialized.");
-                    Debug.Assert(issue.DescriptionHtml == issue2.DescriptionHtml);
+                    Debug.Assert(issue.DescriptionHtml == issue2.DescriptionHtml, "DescriptionHtml property was not serialized correctly.");
+                    Debug.Assert(issue.ReportedAt == issue2.ReportedAt, "ReportedAt property was not serialized correctly.");
                 }
             }
         }
@@ -135,7 +136,7 @@ namespace CodeplexMigration.IssueMigrator
 
                     var commentBody = commentTemplate.Format();
                     var newComment = new NewIssueImportComment(commentBody);
-                    newComment.CreatedAt = comment.CreatedAt.UtcDateTime;
+                    newComment.CreatedAt = comment.CreatedAt;
                     import.Comments.Add(newComment);
                 }
 
@@ -152,10 +153,10 @@ namespace CodeplexMigration.IssueMigrator
                 // if (issue.Impact == "Low" || issue.Impact == "Medium" || issue.Impact == "High")
                 //    labels.Add(issue.Impact);
 
-                import.Issue.CreatedAt = issue.ReportedAt.UtcDateTime;
+                import.Issue.CreatedAt = issue.ReportedAt;
                 if (issue.ClosedAt.HasValue)
                 {
-                    import.Issue.ClosedAt = issue.ClosedAt.Value.UtcDateTime;
+                    import.Issue.ClosedAt = issue.ClosedAt.Value;
                     import.Issue.Closed = true;
                 }
 
@@ -215,12 +216,11 @@ namespace CodeplexMigration.IssueMigrator
             var reportedBy = GetMatch(html, "ReportedByLink.*?>(.*?)</a>");
 
             var reportedTimeString = GetMatch(html, "ReportedOnDateTime.*?title=\"(.*?)\"");
-            DateTimeOffset reportedTime;
-            DateTimeOffset.TryParse(
-                reportedTimeString,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal,
-                out reportedTime);
+            DateTime reportedTime;
+            if (!DateTime.TryParse(reportedTimeString, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal, out reportedTime))
+            {
+                Console.WriteLine($"Error: Failed to convert ReportedAt date time value '{reportedTimeString}'.");
+            }
 
             var issue = new CodeplexIssue { DescriptionHtml = HtmlToMarkdown(description), ReportedBy = reportedBy, ReportedAt = reportedTime.ToUniversalTime() };
             
@@ -237,23 +237,22 @@ namespace CodeplexMigration.IssueMigrator
 
                 var timeString = GetMatch(commentHtml, "class=\"smartDate\" title=\"(.*?)\"");
                 DateTime time;
-                DateTime.TryParse(
-                    timeString,
-                    CultureInfo.InvariantCulture,
-                    DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal,
-                    out time);
+                if (!DateTime.TryParse(timeString, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out time))
+                { 
+                    Console.WriteLine($"Error: Failed to convert CreatedAt date time value '{timeString}'.");
+                }
 
                 var content = GetMatch(commentHtml, "markDownOutput \">(.*?)</div>");
-                issue.Comments.Add(new CodeplexComment { BodyHtml = HtmlToMarkdown(content), Author = author, CreatedAt = time });
+                issue.Comments.Add(new CodeplexComment { BodyHtml = HtmlToMarkdown(content), Author = author, CreatedAt = time.ToUniversalTime() });
             }
 
             if (status == "Closed")
             {
                 var closedTimeString = GetMatch(html, "ClosedOnDateTime.*?title=\"(.*?)\"");
-                DateTimeOffset closedTime;
-                if (DateTimeOffset.TryParse(closedTimeString, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal, out closedTime))
+                DateTime closedTime;
+                if (DateTime.TryParse(closedTimeString, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal, out closedTime))
                 {
-                    issue.ClosedAt = closedTime;
+                    issue.ClosedAt = closedTime.ToUniversalTime();
                 }
                 
                 var closedCommentMatch = Regex.Match(html, "<div id=\"ClosedDiv\".*", RegexOptions.Multiline | RegexOptions.Singleline);
@@ -275,7 +274,7 @@ namespace CodeplexMigration.IssueMigrator
 
                     if (!string.IsNullOrWhiteSpace(content))
                     {
-                        issue.Comments.Add(new CodeplexComment { BodyHtml = content, Author = author, CreatedAt = time });
+                        issue.Comments.Add(new CodeplexComment { BodyHtml = content, Author = author, CreatedAt = time.ToUniversalTime() });
                     }
                 }
             }

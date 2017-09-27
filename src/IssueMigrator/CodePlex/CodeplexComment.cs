@@ -8,6 +8,6 @@ namespace CodeplexMigration.IssueMigrator.Codeplex
 
         public string BodyHtml { get; set; }
 
-        public DateTimeOffset CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }
