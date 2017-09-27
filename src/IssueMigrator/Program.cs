@@ -38,7 +38,7 @@ namespace CodeplexMigration.IssueMigrator
 
         private static readonly Random _rnd = new Random();
 
-        static int Main(string[] args)
+        public static async Task<int> Main(string[] args)
         {
             if (args.Length < 4)
             {
@@ -52,7 +52,7 @@ namespace CodeplexMigration.IssueMigrator
             gitHubAccessToken = args[3];
 
             httpClient = new HttpClient();
-            CacheIssues(codePlexProject);
+            await CacheIssues(codePlexProject);
 
             //var credentials = new Credentials(gitHubAccessToken);
             //var connection = new Connection(new ProductHeaderValue("CodeplexIssueMigrator")) { Credentials = credentials };
@@ -67,14 +67,14 @@ namespace CodeplexMigration.IssueMigrator
             return 0;
         }
 
-        static void CacheIssues(string codeplexProject)
+        static async Task CacheIssues(string codeplexProject)
         {
             if (!Directory.Exists(".cache"))
             {
                 Directory.CreateDirectory(".cache");
             }
 
-            var issues = GetIssues();
+            var issues = await GetIssues();
             foreach (var issue in issues)
             {
                 var xmlSerializer = new XmlSerializer(typeof(CodeplexIssue));
@@ -104,7 +104,7 @@ namespace CodeplexMigration.IssueMigrator
 
         static async Task MigrateIssues()
         {
-            var issues = GetIssues();
+            var issues = await GetIssues();
             foreach (var issue in issues)
             {
                 var import = new NewIssueImport(issue.Title);
@@ -167,20 +167,20 @@ namespace CodeplexMigration.IssueMigrator
             }
         }
 
-        static IEnumerable<CodeplexIssue> GetIssues(int size = 100)
+        static async Task<IEnumerable<CodeplexIssue>> GetIssues(int size = 100)
         {
             // Find the number of items
-            var numberOfItems = GetNumberOfItems();
-
+            var numberOfItems = await GetNumberOfItems();
             Console.WriteLine("Found {0} items", numberOfItems);
 
             // Calculate number of pages
             var pages = (int)Math.Ceiling((double)numberOfItems / size);
 
+            var issues = new List<CodeplexIssue>(numberOfItems);
             for (int page = 0; page < pages; page++)
             {
                 var url = string.Format("https://{0}.codeplex.com/workitem/list/advanced?keyword=&status=All&type=All&priority=All&release=All&assignedTo=All&component=All&sortField=Id&sortDirection=Ascending&size={1}&page={2}", codePlexProject, size, page);
-                var html = httpClient.GetStringAsync(url).Result;
+                var html = await httpClient.GetStringAsync(url);
                 foreach (var issue in GetMatches(html, "<tr id=\"row_checkbox_\\d+\" class=\"CheckboxRow\">(.*?)</tr>"))
                 {
                     var id = int.Parse(GetMatch(issue, "<td class=\"ID\">(\\d+?)</td>"));
@@ -195,15 +195,17 @@ namespace CodeplexMigration.IssueMigrator
                     codeplexIssue.Status = status;
                     codeplexIssue.Type = type;
                     codeplexIssue.Impact = impact;
-                    yield return codeplexIssue;
+                    issues.Add(codeplexIssue);
                 }
             }
+
+            return issues;
         }
 
-        private static int GetNumberOfItems()
+        private static async Task<int> GetNumberOfItems()
         {
             var url = string.Format("https://{0}.codeplex.com/workitem/list/advanced?keyword=&status=All&type=All&priority=All&release=All&assignedTo=All&component=All&sortField=LastUpdatedDate&sortDirection=Descending&page=0&reasonClosed=All",codePlexProject);
-            var html = httpClient.GetStringAsync(url).Result;
+            var html = await httpClient.GetStringAsync(url);
             return int.Parse(GetMatch(html, "Selected\">(\\d+)</span> items"));
         }
 
