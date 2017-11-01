@@ -65,16 +65,6 @@ namespace CodeplexMigration.IssueMigrator
             var connection = new Connection(new ProductHeaderValue("CodeplexIssueMigrator")) { Credentials = credentials };
             client = new GitHubClient(connection);
 
-            try
-            {
-                await ResetTestRepository(client);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                return 1;
-            }
-
             Console.WriteLine("Source: {0}.codeplex.com", codePlexProject);
             Console.WriteLine("Destination: github.com/{0}/{1}", gitHubOwner, gitHubRepository);
             Console.WriteLine("Migrating issues:");
@@ -90,20 +80,6 @@ namespace CodeplexMigration.IssueMigrator
             }
 
             return 0;
-        }
-
-        private static async Task ResetTestRepository(GitHubClient client)
-        {
-            var repo = await client.Repository.Get(gitHubOwner, gitHubRepository);
-            if (repo != null)
-            {
-                await client.Repository.Delete(repo.Id);
-            }
-
-            var newRepo = new NewRepository(gitHubRepository);
-            var repo2 = await client.Repository.Create(gitHubOwner, newRepo);
-
-            Console.WriteLine($"Repository {gitHubOwner}/{gitHubRepository} was reset. New id={repo2.Id}");
         }
 
         static async Task CacheIssues(string codeplexProject)
@@ -185,6 +161,22 @@ namespace CodeplexMigration.IssueMigrator
                 import.Issue.CreatedAt = issue.ReportedAt;
                 if (issue.ClosedAt.HasValue)
                 {
+                    if (!String.IsNullOrEmpty(issue.ClosedComment))
+                    {
+                        var commentTemplate = new CloseCommentTemplate();
+                        commentTemplate.UserAvatar = $"https://github.com/identicons/{issue.ClosedBy}.png";
+                        commentTemplate.OriginalUserName = issue.ClosedBy;
+                        commentTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{issue.ClosedBy}";
+                        commentTemplate.OriginalDate = issue.ClosedAt.Value.ToString("R");
+                        commentTemplate.OriginalDateUtc = issue.ClosedAt.Value.ToString("s");
+                        commentTemplate.OriginalBody = HtmlToMarkdown(issue.ClosedComment);
+
+                        var closeCommentBody = commentTemplate.Format();
+                        var closeComment = new NewIssueImportComment(closeCommentBody);
+                        closeComment.CreatedAt = issue.ClosedAt.Value;
+                        import.Comments.Add(closeComment);
+                    }
+
                     import.Issue.ClosedAt = issue.ClosedAt.Value;
                     import.Issue.Closed = true;
                 }

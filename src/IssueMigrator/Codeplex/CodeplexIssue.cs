@@ -29,6 +29,10 @@ namespace CodeplexMigration.IssueMigrator.Codeplex
         [JsonProperty("ReportedBy")]
         public string ReportedBy { get; set; }
 
+        public string ClosedComment { get; set; }
+
+        public string ClosedBy { get; set; }
+
         [JsonIgnore]
         public bool IsClosed
         {

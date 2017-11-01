@@ -12,6 +12,11 @@ namespace CodeplexMigration.IssueMigrator.Templates
         {
         }
 
+        protected CommentTemplate(string templateName)
+            : base(templateName)
+        {
+        }
+
         public string UserAvatar { get; set; }
 
         protected override void OnFormatTemplate(StringBuilder sb)

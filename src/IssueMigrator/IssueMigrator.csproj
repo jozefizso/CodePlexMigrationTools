@@ -60,6 +60,7 @@
     <Compile Include="Codeplex\CodeplexIssueList.cs" />
     <Compile Include="Codeplex\CodeplexIssueDetails.cs" />
     <Compile Include="Codeplex\CodeplexXmlWriter.cs" />
+    <Compile Include="Templates\CloseCommentTemplate.cs" />
     <Compile Include="Templates\CommentTemplate.cs" />
     <Compile Include="Templates\TemplateBase.cs" />
     <Compile Include="Templates\IssueTemplate.cs" />
@@ -73,6 +74,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Templates\comment.md.txt" />
     <EmbeddedResource Include="Templates\issue.md.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\closecomment.md.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
