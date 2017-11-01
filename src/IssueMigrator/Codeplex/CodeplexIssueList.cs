@@ -10,7 +10,7 @@ namespace CodeplexMigration.IssueMigrator.Codeplex
     public class CodeplexIssueList
     {
         [JsonProperty("List")]
-        public List<CodeplexIssue> Issues { get; set; }
+        public List<CodeplexIssueInfo> Issues { get; set; }
 
 
         [JsonProperty("TotalItemCount")]

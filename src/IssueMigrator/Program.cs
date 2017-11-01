@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -15,6 +16,7 @@ using System.Xml.Serialization;
 using CodeplexMigration.IssueMigrator.Codeplex;
 using CodeplexMigration.IssueMigrator.Templates;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Octokit;
 using Formatting = System.Xml.Formatting;
 
@@ -24,6 +26,7 @@ namespace CodeplexMigration.IssueMigrator
     {
         private const string GitHubAvatar_CodeplexAvatar_User = "https://avatars.githubusercontent.com/u/30236365?s=192";
         private const string Codeplex_ListIssuesTemplate = "https://{0}.codeplex.com/project/api/issues?start={1}&showClosed={2}";
+        private const string Codeplex_IssueDetailsTemplate = "https://{0}.codeplex.com/project/api/issues/{1}";
 
         // CodePlex project
         private static string codePlexProject;
@@ -56,16 +59,27 @@ namespace CodeplexMigration.IssueMigrator
             gitHubAccessToken = args[3];
 
             httpClient = new HttpClient();
-            await CacheIssues(codePlexProject);
+            //await CacheIssues(codePlexProject);
 
             var credentials = new Credentials(gitHubAccessToken);
             var connection = new Connection(new ProductHeaderValue("CodeplexIssueMigrator")) { Credentials = credentials };
             client = new GitHubClient(connection);
+
+            try
+            {
+                await ResetTestRepository(client);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return 1;
+            }
+
             Console.WriteLine("Source: {0}.codeplex.com", codePlexProject);
             Console.WriteLine("Destination: github.com/{0}/{1}", gitHubOwner, gitHubRepository);
             Console.WriteLine("Migrating issues:");
-            await MigrateIssues();
-            //await MigrateIssuesFromCache();
+            //await MigrateIssues();
+            await MigrateIssuesFromCache();
 
             Console.WriteLine();
             Console.WriteLine("Completed successfully.");
@@ -78,6 +92,20 @@ namespace CodeplexMigration.IssueMigrator
             return 0;
         }
 
+        private static async Task ResetTestRepository(GitHubClient client)
+        {
+            var repo = await client.Repository.Get(gitHubOwner, gitHubRepository);
+            if (repo != null)
+            {
+                await client.Repository.Delete(repo.Id);
+            }
+
+            var newRepo = new NewRepository(gitHubRepository);
+            var repo2 = await client.Repository.Create(gitHubOwner, newRepo);
+
+            Console.WriteLine($"Repository {gitHubOwner}/{gitHubRepository} was reset. New id={repo2.Id}");
+        }
+
         static async Task CacheIssues(string codeplexProject)
         {
             if (!Directory.Exists(".cache"))
@@ -88,28 +116,12 @@ namespace CodeplexMigration.IssueMigrator
             var issues = await GetIssues();
             foreach (var issue in issues)
             {
-                var xmlSerializer = new XmlSerializer(typeof(CodeplexIssue));
+                var url = string.Format(Codeplex_IssueDetailsTemplate, codeplexProject, issue.Id);
+                var json = await httpClient.GetStringAsync(url);
+                var filename = $@".cache\{codeplexProject}_{issue.Id}.json";
 
-                using (var xmlWriter = new CodeplexXmlWriter($@".cache\{codeplexProject}_{issue.Id}.xml", Encoding.UTF8))
-                {
-                    xmlWriter.Formatting = Formatting.Indented;
-                    xmlWriter.IndentChar = ' ';
-                    xmlWriter.Indentation = 2;
-
-                    xmlSerializer.Serialize(xmlWriter, issue);
-                }
-
-                using (var xmlReader = new XmlTextReader($@".cache\{codeplexProject}_{issue.Id}.xml"))
-                {
-                    xmlReader.DtdProcessing = DtdProcessing.Prohibit;
-                    xmlReader.WhitespaceHandling = WhitespaceHandling.All;
-
-                    var issue2 = xmlSerializer.Deserialize(xmlReader) as CodeplexIssue;
-
-                    Debug.Assert(issue2 != null, "Issue cannot be deserialized.");
-                    Debug.Assert(issue.DescriptionHtml == issue2.DescriptionHtml, "DescriptionHtml property was not serialized correctly.");
-                    Debug.Assert(issue.ReportedAt == issue2.ReportedAt, "ReportedAt property was not serialized correctly.");
-                }
+                File.WriteAllText(filename, json, Encoding.UTF8);
+                Console.WriteLine($"  Issue {issue.Id} cached to path '{filename}'.");
             }
         }
 
@@ -119,97 +131,92 @@ namespace CodeplexMigration.IssueMigrator
             await MigrateIssues(issues);
         }
 
-        static async Task MigrateIssues()
+        static async Task MigrateIssues(IEnumerable<CodeplexIssueDetails> details)
         {
-            var issues = await GetIssues();
-            await MigrateIssues(issues);
-        }
-
-        static async Task MigrateIssues(IEnumerable<CodeplexIssue> issues)
-        {
-            foreach (var issue in issues)
+            foreach (var issueDetails in details)
             {
-                ////var import = new NewIssueImport(issue.Title);
+                var issue = issueDetails.Issue;
+                var import = new NewIssueImport(issue.Title);
 
-                ////var issueTemplate = new IssueTemplate();
+                var issueTemplate = new IssueTemplate();
 
-                ////var codePlexIssueUrl = $"https://{codePlexProject}.codeplex.com/workitem/{issue.Id}";
+                var codePlexIssueUrl = $"https://{codePlexProject}.codeplex.com/workitem/{issue.Id}";
 
-                ////issueTemplate.CodeplexAvatar = GitHubAvatar_CodeplexAvatar_User;
-                ////issueTemplate.OriginalUrl = codePlexIssueUrl;
-                ////issueTemplate.OriginalUserName = issue.ReportedBy;
-                ////issueTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{issue.ReportedBy}";
-                ////issueTemplate.OriginalDate = issue.ReportedAt.ToString("R");
-                ////issueTemplate.OriginalDateUtc = issue.ReportedAt.ToString("s");
-                ////issueTemplate.OriginalBody = issue.DescriptionHtml;
+                issueTemplate.CodeplexAvatar = GitHubAvatar_CodeplexAvatar_User;
+                issueTemplate.OriginalUrl = codePlexIssueUrl;
+                issueTemplate.OriginalUserName = issue.ReportedBy;
+                issueTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{issue.ReportedBy}";
+                issueTemplate.OriginalDate = issue.ReportedAt.ToString("R");
+                issueTemplate.OriginalDateUtc = issue.ReportedAt.ToString("s");
+                issueTemplate.OriginalBody = HtmlToMarkdown(issue.DescriptionHtml);
 
-                ////var issueBody = issueTemplate.Format();
-                ////import.Issue.Body = issueBody.Trim();
+                var issueBody = issueTemplate.Format();
+                import.Issue.Body = issueBody.Trim();
 
-                ////foreach (var comment in issue.Comments)
-                ////{
-                ////    var commentTemplate = new CommentTemplate();
-                ////    commentTemplate.UserAvatar = $"https://github.com/identicons/{comment.Author}.png";
-                ////    commentTemplate.OriginalUserName = comment.Author; 
-                ////    commentTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{comment.Author}";
-                ////    commentTemplate.OriginalDate = comment.CreatedAt.ToString("R");
-                ////    commentTemplate.OriginalDateUtc = comment.CreatedAt.ToString("s");
-                ////    commentTemplate.OriginalBody = comment.BodyHtml;
+                foreach (var comment in issueDetails.Comments)
+                {
+                    var commentTemplate = new CommentTemplate();
+                    commentTemplate.UserAvatar = $"https://github.com/identicons/{comment.Author}.png";
+                    commentTemplate.OriginalUserName = comment.Author;
+                    commentTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{comment.Author}";
+                    commentTemplate.OriginalDate = comment.CreatedAt.ToString("R");
+                    commentTemplate.OriginalDateUtc = comment.CreatedAt.ToString("s");
+                    commentTemplate.OriginalBody = HtmlToMarkdown(comment.BodyHtml);
 
-                ////    var commentBody = commentTemplate.Format();
-                ////    var newComment = new NewIssueImportComment(commentBody);
-                ////    newComment.CreatedAt = comment.CreatedAt;
-                ////    import.Comments.Add(newComment);
-                ////}
+                    var commentBody = commentTemplate.Format();
+                    var newComment = new NewIssueImportComment(commentBody);
+                    newComment.CreatedAt = comment.CreatedAt;
+                    import.Comments.Add(newComment);
+                }
 
-                ////import.Issue.Labels.Add("CodePlex");
-                ////switch (issue.Type)
-                ////{
-                ////    case "Feature":
-                ////        import.Issue.Labels.Add("enhancement");
-                ////        break;
-                ////    case "Issue":
-                ////        import.Issue.Labels.Add("bug");
-                ////        break;
-                ////}
-                ////// if (issue.Impact == "Low" || issue.Impact == "Medium" || issue.Impact == "High")
-                //////    labels.Add(issue.Impact);
+                import.Issue.Labels.Add("CodePlex");
+                switch (issue.Type?.Name)
+                {
+                    case "Feature":
+                        import.Issue.Labels.Add("enhancement");
+                        break;
+                    case "Issue":
+                        import.Issue.Labels.Add("bug");
+                        break;
+                }
+                // if (issue.Impact == "Low" || issue.Impact == "Medium" || issue.Impact == "High")
+                //    labels.Add(issue.Impact);
 
-                ////import.Issue.CreatedAt = issue.ReportedAt;
-                ////if (issue.ClosedAt.HasValue)
-                ////{
-                ////    import.Issue.ClosedAt = issue.ClosedAt.Value;
-                ////    import.Issue.Closed = true;
-                ////}
+                import.Issue.CreatedAt = issue.ReportedAt;
+                if (issue.ClosedAt.HasValue)
+                {
+                    import.Issue.ClosedAt = issue.ClosedAt.Value;
+                    import.Issue.Closed = true;
+                }
 
-                ////var gitHubIssue = await StartIssueImport(import);
-                ////Console.WriteLine($"  Issue {issue.Id} is imported with task '{gitHubIssue.Id}': {gitHubIssue.Url}");
-                Console.WriteLine($"  Importing {issue.Id}: {issue.Title}");
+                var gitHubIssue = await StartIssueImport(import);
+                Console.WriteLine($"  Issue {issue.Id} is imported with task '{gitHubIssue.Id}': {gitHubIssue.Url}");
             }
         }
 
-        static IEnumerable<CodeplexIssue> GetIssuesFromCache()
+        static IEnumerable<CodeplexIssueDetails> GetIssuesFromCache()
         {
-            var files = Directory.EnumerateFiles(".cache", "*.xml");
-            var issues = new List<CodeplexIssue>();
-            var xmlSerializer = new XmlSerializer(typeof(CodeplexIssue));
+            var files = Directory.EnumerateFiles(".cache", "*.json").ToList();
+            var issues = new List<CodeplexIssueDetails>(files.Count);
 
             foreach (var file in files)
             {
-                using (var xmlReader = new XmlTextReader(file))
+                var json = File.ReadAllText(file);
+                try
                 {
-                    var issue = xmlSerializer.Deserialize(xmlReader) as CodeplexIssue;
-                    if (issue != null)
-                    {
-                        issues.Add(issue);
-                    }
+                    var workitem = JsonConvert.DeserializeObject<CodeplexIssueDetails>(json);
+                    issues.Add(workitem);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
                 }
             }
 
             return issues;
         }
 
-        static async Task<IEnumerable<CodeplexIssue>> GetIssues()
+        static async Task<IEnumerable<CodeplexIssueInfo>> GetIssues()
         {
             // Find the number of items
             var url = string.Format(Codeplex_ListIssuesTemplate, codePlexProject, 0, true);
@@ -218,7 +225,7 @@ namespace CodeplexMigration.IssueMigrator
 
             Console.WriteLine("Found {0} items", numberOfItems);
 
-            var issues = new List<CodeplexIssue>(numberOfItems);
+            var issues = new List<CodeplexIssueInfo>(numberOfItems);
             issues.AddRange(issueList.Issues);
 
             var retrieviedItems = issueList.Issues.Count;
@@ -240,92 +247,17 @@ namespace CodeplexMigration.IssueMigrator
             return JsonConvert.DeserializeObject<CodeplexIssueList>(json);
         }
 
-        private static async Task<int> GetNumberOfItems()
-        {
-            var url = string.Format("https://{0}.codeplex.com/workitem/list/advanced?keyword=&status=All&type=All&priority=All&release=All&assignedTo=All&component=All&sortField=LastUpdatedDate&sortDirection=Descending&page=0&reasonClosed=All",codePlexProject);
-            var html = await httpClient.GetStringAsync(url);
-            return int.Parse(GetMatch(html, "Selected\">(\\d+)</span> items"));
-        }
-
-        static async Task<CodeplexIssue> GetIssue(int number, string status)
-        {
-            var url = string.Format("https://{0}.codeplex.com/workitem/{1}", codePlexProject, number);
-            var html = await httpClient.GetStringAsync(url);
-
-            var description = GetMatch(html, "descriptionContent\">(.*?)</div>");
-            var reportedBy = GetMatch(html, "ReportedByLink.*?>(.*?)</a>");
-
-            var reportedTimeString = GetMatch(html, "ReportedOnDateTime.*?title=\"(.*?)\"");
-            DateTime reportedTime;
-            if (!DateTime.TryParse(reportedTimeString, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal, out reportedTime))
-            {
-                Console.WriteLine($"Error: Failed to convert ReportedAt date time value '{reportedTimeString}'.");
-            }
-
-            var issue = new CodeplexIssue { DescriptionHtml = HtmlToMarkdown(description), ReportedBy = reportedBy, ReportedAt = reportedTime.ToUniversalTime() };
-            
-            for (int i = 0; ; i++)
-            {
-                var commentMatch = Regex.Match(html, @"CommentContainer" + i + "\">.*", RegexOptions.Multiline | RegexOptions.Singleline);
-                if (!commentMatch.Success)
-                {
-                    break;
-                }
-
-                var commentHtml = commentMatch.Value;
-                var author = GetMatch(commentHtml, "class=\"author\".*?>(.*?)</a>");
-
-                var timeString = GetMatch(commentHtml, "class=\"smartDate\" title=\"(.*?)\"");
-                DateTime time;
-                if (!DateTime.TryParse(timeString, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out time))
-                { 
-                    Console.WriteLine($"Error: Failed to convert CreatedAt date time value '{timeString}'.");
-                }
-
-                var content = GetMatch(commentHtml, "markDownOutput \">(.*?)</div>");
-                issue.Comments.Add(new CodeplexComment { BodyHtml = HtmlToMarkdown(content), Author = author, CreatedAt = time.ToUniversalTime() });
-            }
-
-            if (status == "Closed")
-            {
-                var closedTimeString = GetMatch(html, "ClosedOnDateTime.*?title=\"(.*?)\"");
-                DateTime closedTime;
-                if (DateTime.TryParse(closedTimeString, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal, out closedTime))
-                {
-                    issue.ClosedAt = closedTime.ToUniversalTime();
-                }
-                
-                var closedCommentMatch = Regex.Match(html, "<div id=\"ClosedDiv\".*", RegexOptions.Multiline | RegexOptions.Singleline);
-                if (closedCommentMatch.Success)
-                {
-                    var closedCommentHtml = closedCommentMatch.Value;
-                    var author = GetMatch(closedCommentHtml, "id=\"ClosedByLink\".*?>(.*?)</a>");
-
-                    var timeString = GetMatch(closedCommentHtml, "class=\"smartDate\" title=\"(.*?)\"");
-                    DateTime time;
-                    DateTime.TryParse(
-                        timeString,
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal,
-                        out time);
-
-                    var content = GetMatch(closedCommentHtml, "markDownOutput \">(.*?)</div>");
-                    content = HtmlToMarkdown(content);
-
-                    if (!string.IsNullOrWhiteSpace(content))
-                    {
-                        issue.Comments.Add(new CodeplexComment { BodyHtml = content, Author = author, CreatedAt = time.ToUniversalTime() });
-                    }
-                }
-            }
-
-            return issue;
-        }
-
         private static string HtmlToMarkdown(string html)
         {
             var text = HttpUtility.HtmlDecode(html);
-            text = text.Replace("<br>", "\r\n");
+            if (text == null)
+            {
+                return "";
+            }
+
+            text = text.Replace("<br>", "");
+            text = text.Replace("<br/>", "");
+            text = text.Replace("<br />", "");
             return text.Trim();
         }
 

@@ -1,40 +1,57 @@
 using System;
-using System.Collections.Generic;
-using System.Xml.Serialization;
+using System.Runtime.Serialization;
+using Newtonsoft.Json;
 
 namespace CodeplexMigration.IssueMigrator.Codeplex
 {
     public class CodeplexIssue
     {
-        public CodeplexIssue()
-        {
-            this.Comments = new List<CodeplexComment>();
-        }
-
         public int Id { get; set; }
 
+        [JsonProperty("Summary")]
         public string Title { get; set; }
 
+        [JsonProperty("HtmlDescription")]
         public string DescriptionHtml { get; set; }
 
-        public string Status { get; set; }
+        public CodeplexIssueStatus Status { get; set; }
 
-        public string Type { get; set; }
+        public CodeplexIssueType Type { get; set; }
+        
+        public CodeplexIssuePriority Priority { get; set; }
 
-        public string Impact { get; set; }
-
-        public ICollection<CodeplexComment> Comments { get; }
-
+        [JsonProperty("ReportedDate")]
         public DateTime ReportedAt { get; set; }
 
+        [JsonProperty("ClosedDate")]
         public DateTime? ClosedAt { get; set; }
 
+        [JsonProperty("ReportedBy")]
         public string ReportedBy { get; set; }
 
-        [XmlIgnore]
+        [JsonIgnore]
         public bool IsClosed
         {
             get { return this.ClosedAt.HasValue; }
         }
+    }
+
+    public class CodeplexIssuePriority
+    {
+        public string Name { get; set; }
+        public int Severity { get; set; }
+        public int Id { get; set; }
+    }
+
+    public class CodeplexIssueStatus
+    {
+        public string Name { get; set; }
+        public int Id { get; set; }
+    }
+
+    public class CodeplexIssueType
+    {
+        public string Name { get; set; }
+        public int Id { get; set; }
     }
 }

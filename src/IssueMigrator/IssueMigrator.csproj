@@ -55,8 +55,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Codeplex\CodeplexComment.cs" />
+    <Compile Include="Codeplex\CodeplexIssueInfo.cs" />
     <Compile Include="Codeplex\CodeplexIssue.cs" />
     <Compile Include="Codeplex\CodeplexIssueList.cs" />
+    <Compile Include="Codeplex\CodeplexIssueDetails.cs" />
     <Compile Include="Codeplex\CodeplexXmlWriter.cs" />
     <Compile Include="Templates\CommentTemplate.cs" />
     <Compile Include="Templates\TemplateBase.cs" />
