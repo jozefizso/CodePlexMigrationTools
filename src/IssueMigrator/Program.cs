@@ -1,24 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using System.Xml;
-using System.Xml.Serialization;
 using CodeplexMigration.IssueMigrator.Codeplex;
 using CodeplexMigration.IssueMigrator.Templates;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Octokit;
-using Formatting = System.Xml.Formatting;
 
 namespace CodeplexMigration.IssueMigrator
 {
