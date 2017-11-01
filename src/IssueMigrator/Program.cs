@@ -43,8 +43,6 @@ namespace CodeplexMigration.IssueMigrator
         private static GitHubClient client;
         private static HttpClient httpClient;
 
-        private static readonly Random _rnd = new Random();
-
         public static async Task<int> Main(string[] args)
         {
             if (args.Length < 4)
