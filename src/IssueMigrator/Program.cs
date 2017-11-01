@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -13,13 +14,16 @@ using System.Xml;
 using System.Xml.Serialization;
 using CodeplexMigration.IssueMigrator.Codeplex;
 using CodeplexMigration.IssueMigrator.Templates;
+using Newtonsoft.Json;
 using Octokit;
+using Formatting = System.Xml.Formatting;
 
 namespace CodeplexMigration.IssueMigrator
 {
     public class Program
     {
         private const string GitHubAvatar_CodeplexAvatar_User = "https://avatars.githubusercontent.com/u/30236365?s=192";
+        private const string Codeplex_ListIssuesTemplate = "https://{0}.codeplex.com/project/api/issues?start={1}&showClosed={2}";
 
         // CodePlex project
         private static string codePlexProject;
@@ -60,10 +64,17 @@ namespace CodeplexMigration.IssueMigrator
             Console.WriteLine("Source: {0}.codeplex.com", codePlexProject);
             Console.WriteLine("Destination: github.com/{0}/{1}", gitHubOwner, gitHubRepository);
             Console.WriteLine("Migrating issues:");
-            await MigrateIssuesFromCache();
+            await MigrateIssues();
+            //await MigrateIssuesFromCache();
 
             Console.WriteLine();
             Console.WriteLine("Completed successfully.");
+
+            if (Debugger.IsAttached)
+            {
+                Console.ReadKey();
+            }
+
             return 0;
         }
 
@@ -118,61 +129,62 @@ namespace CodeplexMigration.IssueMigrator
         {
             foreach (var issue in issues)
             {
-                var import = new NewIssueImport(issue.Title);
+                ////var import = new NewIssueImport(issue.Title);
 
-                var issueTemplate = new IssueTemplate();
+                ////var issueTemplate = new IssueTemplate();
 
-                var codePlexIssueUrl = $"https://{codePlexProject}.codeplex.com/workitem/{issue.Id}";
+                ////var codePlexIssueUrl = $"https://{codePlexProject}.codeplex.com/workitem/{issue.Id}";
 
-                issueTemplate.CodeplexAvatar = GitHubAvatar_CodeplexAvatar_User;
-                issueTemplate.OriginalUrl = codePlexIssueUrl;
-                issueTemplate.OriginalUserName = issue.ReportedBy;
-                issueTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{issue.ReportedBy}";
-                issueTemplate.OriginalDate = issue.ReportedAt.ToString("R");
-                issueTemplate.OriginalDateUtc = issue.ReportedAt.ToString("s");
-                issueTemplate.OriginalBody = issue.DescriptionHtml;
+                ////issueTemplate.CodeplexAvatar = GitHubAvatar_CodeplexAvatar_User;
+                ////issueTemplate.OriginalUrl = codePlexIssueUrl;
+                ////issueTemplate.OriginalUserName = issue.ReportedBy;
+                ////issueTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{issue.ReportedBy}";
+                ////issueTemplate.OriginalDate = issue.ReportedAt.ToString("R");
+                ////issueTemplate.OriginalDateUtc = issue.ReportedAt.ToString("s");
+                ////issueTemplate.OriginalBody = issue.DescriptionHtml;
 
-                var issueBody = issueTemplate.Format();
-                import.Issue.Body = issueBody.Trim();
+                ////var issueBody = issueTemplate.Format();
+                ////import.Issue.Body = issueBody.Trim();
 
-                foreach (var comment in issue.Comments)
-                {
-                    var commentTemplate = new CommentTemplate();
-                    commentTemplate.UserAvatar = $"https://github.com/identicons/{comment.Author}.png";
-                    commentTemplate.OriginalUserName = comment.Author; 
-                    commentTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{comment.Author}";
-                    commentTemplate.OriginalDate = comment.CreatedAt.ToString("R");
-                    commentTemplate.OriginalDateUtc = comment.CreatedAt.ToString("s");
-                    commentTemplate.OriginalBody = comment.BodyHtml;
+                ////foreach (var comment in issue.Comments)
+                ////{
+                ////    var commentTemplate = new CommentTemplate();
+                ////    commentTemplate.UserAvatar = $"https://github.com/identicons/{comment.Author}.png";
+                ////    commentTemplate.OriginalUserName = comment.Author; 
+                ////    commentTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{comment.Author}";
+                ////    commentTemplate.OriginalDate = comment.CreatedAt.ToString("R");
+                ////    commentTemplate.OriginalDateUtc = comment.CreatedAt.ToString("s");
+                ////    commentTemplate.OriginalBody = comment.BodyHtml;
 
-                    var commentBody = commentTemplate.Format();
-                    var newComment = new NewIssueImportComment(commentBody);
-                    newComment.CreatedAt = comment.CreatedAt;
-                    import.Comments.Add(newComment);
-                }
+                ////    var commentBody = commentTemplate.Format();
+                ////    var newComment = new NewIssueImportComment(commentBody);
+                ////    newComment.CreatedAt = comment.CreatedAt;
+                ////    import.Comments.Add(newComment);
+                ////}
 
-                import.Issue.Labels.Add("CodePlex");
-                switch (issue.Type)
-                {
-                    case "Feature":
-                        import.Issue.Labels.Add("enhancement");
-                        break;
-                    case "Issue":
-                        import.Issue.Labels.Add("bug");
-                        break;
-                }
-                // if (issue.Impact == "Low" || issue.Impact == "Medium" || issue.Impact == "High")
-                //    labels.Add(issue.Impact);
+                ////import.Issue.Labels.Add("CodePlex");
+                ////switch (issue.Type)
+                ////{
+                ////    case "Feature":
+                ////        import.Issue.Labels.Add("enhancement");
+                ////        break;
+                ////    case "Issue":
+                ////        import.Issue.Labels.Add("bug");
+                ////        break;
+                ////}
+                ////// if (issue.Impact == "Low" || issue.Impact == "Medium" || issue.Impact == "High")
+                //////    labels.Add(issue.Impact);
 
-                import.Issue.CreatedAt = issue.ReportedAt;
-                if (issue.ClosedAt.HasValue)
-                {
-                    import.Issue.ClosedAt = issue.ClosedAt.Value;
-                    import.Issue.Closed = true;
-                }
+                ////import.Issue.CreatedAt = issue.ReportedAt;
+                ////if (issue.ClosedAt.HasValue)
+                ////{
+                ////    import.Issue.ClosedAt = issue.ClosedAt.Value;
+                ////    import.Issue.Closed = true;
+                ////}
 
-                var gitHubIssue = await StartIssueImport(import);
-                Console.WriteLine($"  Issue {issue.Id} is imported with task '{gitHubIssue.Id}': {gitHubIssue.Url}");
+                ////var gitHubIssue = await StartIssueImport(import);
+                ////Console.WriteLine($"  Issue {issue.Id} is imported with task '{gitHubIssue.Id}': {gitHubIssue.Url}");
+                Console.WriteLine($"  Importing {issue.Id}: {issue.Title}");
             }
         }
 
@@ -197,39 +209,35 @@ namespace CodeplexMigration.IssueMigrator
             return issues;
         }
 
-        static async Task<IEnumerable<CodeplexIssue>> GetIssues(int size = 100)
+        static async Task<IEnumerable<CodeplexIssue>> GetIssues()
         {
             // Find the number of items
-            var numberOfItems = await GetNumberOfItems();
+            var url = string.Format(Codeplex_ListIssuesTemplate, codePlexProject, 0, true);
+            var issueList = await DownloadIssueList(url);
+            var numberOfItems = issueList.TotalItems;
+
             Console.WriteLine("Found {0} items", numberOfItems);
 
-            // Calculate number of pages
-            var pages = (int)Math.Ceiling((double)numberOfItems / size);
-
             var issues = new List<CodeplexIssue>(numberOfItems);
-            for (int page = 0; page < pages; page++)
+            issues.AddRange(issueList.Issues);
+
+            var retrieviedItems = issueList.Issues.Count;
+            while (retrieviedItems < numberOfItems)
             {
-                var url = string.Format("https://{0}.codeplex.com/workitem/list/advanced?keyword=&status=All&type=All&priority=All&release=All&assignedTo=All&component=All&sortField=Id&sortDirection=Ascending&size={1}&page={2}", codePlexProject, size, page);
-                var html = await httpClient.GetStringAsync(url);
-                foreach (var issue in GetMatches(html, "<tr id=\"row_checkbox_\\d+\" class=\"CheckboxRow\">(.*?)</tr>"))
-                {
-                    var id = int.Parse(GetMatch(issue, "<td class=\"ID\">(\\d+?)</td>"));
-                    var status = GetMatch(issue, "<td class=\"Status\">(.+?)</td>");
-                    var type = GetMatch(issue, "<td class=\"Type\">(.+?)</td>");
-                    var impact = GetMatch(issue, "<td class=\"Severity\">(.+?)</td>");
-                    var title = GetMatch(issue, "<a id=\"TitleLink.*>(.*?)</a>");
-                    Console.WriteLine("{0} ({1}) : {2}", id, status, title);
-                    var codeplexIssue = GetIssue(id, status).Result;
-                    codeplexIssue.Id = id;
-                    codeplexIssue.Title = HtmlToMarkdown(title);
-                    codeplexIssue.Status = status;
-                    codeplexIssue.Type = type;
-                    codeplexIssue.Impact = impact;
-                    issues.Add(codeplexIssue);
-                }
+                url = string.Format(Codeplex_ListIssuesTemplate, codePlexProject, retrieviedItems, true);
+                issueList = await DownloadIssueList(url);
+                retrieviedItems += issueList.Issues.Count;
+
+                issues.AddRange(issueList.Issues);
             }
 
             return issues;
+        }
+
+        private static async Task<CodeplexIssueList> DownloadIssueList(string url)
+        {
+            string json = await httpClient.GetStringAsync(url);
+            return JsonConvert.DeserializeObject<CodeplexIssueList>(json);
         }
 
         private static async Task<int> GetNumberOfItems()
