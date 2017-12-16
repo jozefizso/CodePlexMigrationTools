@@ -18,7 +18,8 @@ namespace CodeplexMigration.IssueMigrator
 {
     public class Program
     {
-        private const string GitHubAvatar_CodeplexAvatar_User = "https://avatars.githubusercontent.com/u/30236365?s=192";
+        private const string GitHubAvatar_CodeplexAvatar_User = "https://avatars.githubusercontent.com/u/30236365?s=96";
+        private const string GitHubAvatar_CodeplexGuestAvatar_User = "https://avatars.githubusercontent.com/u/34607183?s=96";
         private const string Codeplex_ListIssuesTemplate = "https://{0}.codeplex.com/project/api/issues?start={1}&showClosed={2}";
         private const string Codeplex_IssueDetailsTemplate = "https://{0}.codeplex.com/project/api/issues/{1}";
 
@@ -153,7 +154,7 @@ namespace CodeplexMigration.IssueMigrator
                 foreach (var comment in issueDetails.Comments)
                 {
                     var commentTemplate = new CommentTemplate();
-                    commentTemplate.UserAvatar = $"https://github.com/identicons/{comment.Author}.png";
+                    commentTemplate.UserAvatar = GitHubAvatar_CodeplexGuestAvatar_User; // $"https://github.com/identicons/{comment.Author}.png";
                     commentTemplate.OriginalUserName = comment.Author;
                     commentTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{comment.Author}";
                     commentTemplate.OriginalDate = comment.CreatedAt.ToString("R");
@@ -185,7 +186,7 @@ namespace CodeplexMigration.IssueMigrator
                     if (!String.IsNullOrEmpty(issue.ClosedComment))
                     {
                         var commentTemplate = new CloseCommentTemplate();
-                        commentTemplate.UserAvatar = $"https://github.com/identicons/{issue.ClosedBy}.png";
+                        commentTemplate.UserAvatar = GitHubAvatar_CodeplexGuestAvatar_User; // $"https://github.com/identicons/{issue.ClosedBy}.png";
                         commentTemplate.OriginalUserName = issue.ClosedBy;
                         commentTemplate.OriginalUserUrl = $"https://www.codeplex.com/site/users/view/{issue.ClosedBy}";
                         commentTemplate.OriginalDate = issue.ClosedAt.Value.ToString("R");
