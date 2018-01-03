@@ -11,6 +11,7 @@ using System.Web;
 using CodeplexMigration.IssueMigrator.Codeplex;
 using CodeplexMigration.IssueMigrator.Templates;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Octokit;
 
 namespace CodeplexMigration.IssueMigrator
@@ -20,6 +21,8 @@ namespace CodeplexMigration.IssueMigrator
         private const string GitHubAvatar_CodeplexAvatar_User = "https://avatars.githubusercontent.com/u/30236365?s=192";
         private const string Codeplex_ListIssuesTemplate = "https://{0}.codeplex.com/project/api/issues?start={1}&showClosed={2}";
         private const string Codeplex_IssueDetailsTemplate = "https://{0}.codeplex.com/project/api/issues/{1}";
+
+        private static readonly Encoding UTF8NoBom = new UTF8Encoding(false);
 
         // CodePlex project
         private static string codePlexProject;
@@ -50,7 +53,7 @@ namespace CodeplexMigration.IssueMigrator
             gitHubAccessToken = args[3];
 
             httpClient = new HttpClient();
-            //await CacheIssues(codePlexProject);
+            await CacheIssues(codePlexProject);
 
             var credentials = new Credentials(gitHubAccessToken);
             var connection = new Connection(new ProductHeaderValue("CodeplexIssueMigrator")) { Credentials = credentials };
@@ -87,8 +90,35 @@ namespace CodeplexMigration.IssueMigrator
                 var json = await httpClient.GetStringAsync(url);
                 var filename = $@".cache\{codeplexProject}_{issue.Id}.json";
 
-                File.WriteAllText(filename, json, Encoding.UTF8);
-                Console.WriteLine($"  Issue {issue.Id} cached to path '{filename}'.");
+                try
+                {
+                    var loadSettings = new JsonLoadSettings();
+                    loadSettings.CommentHandling = CommentHandling.Load;
+                    loadSettings.LineInfoHandling = LineInfoHandling.Ignore;
+
+                    var formatting = Formatting.Indented;
+
+                    var jtoken = JToken.Parse(json, loadSettings);
+                    var jsonFormatted = jtoken.ToString(formatting);
+
+                    File.WriteAllText(filename, jsonFormatted, UTF8NoBom);
+                    Console.WriteLine($"  Issue {issue.Id} cached to path '{filename}'.");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Failed to save formatted json to file '{filename}'. Error: {e.Message}");
+
+                    try
+                    {
+                        File.WriteAllText(filename, json, UTF8NoBom);
+
+                    }
+                    catch (Exception e1)
+                    {
+                        Console.WriteLine($"Failed to save raw json to file '{filename}'. Error: {e1.Message}");
+                    }
+
+                }
             }
         }
 
