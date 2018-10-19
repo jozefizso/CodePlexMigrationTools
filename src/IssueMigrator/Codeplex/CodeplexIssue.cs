@@ -11,27 +11,24 @@ namespace CodeplexMigration.IssueMigrator.Codeplex
         [JsonProperty("Summary")]
         public string Title { get; set; }
 
-        [JsonProperty("HtmlDescription")]
-        public string DescriptionHtml { get; set; }
+        [JsonProperty("Description")]
+        public string Description { get; set; }
+
+        public string ProjectName { get; set; }
 
         public CodeplexIssueStatus Status { get; set; }
 
         public CodeplexIssueType Type { get; set; }
-        
+
         public CodeplexIssuePriority Priority { get; set; }
 
         [JsonProperty("ReportedDate")]
-        public DateTime ReportedAt { get; set; }
+        public DateTimeOffset ReportedAt { get; set; }
 
         [JsonProperty("ClosedDate")]
-        public DateTime? ClosedAt { get; set; }
-
-        [JsonProperty("ReportedBy")]
-        public string ReportedBy { get; set; }
+        public DateTimeOffset? ClosedAt { get; set; }
 
         public string ClosedComment { get; set; }
-
-        public string ClosedBy { get; set; }
 
         [JsonIgnore]
         public bool IsClosed

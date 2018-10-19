@@ -16,8 +16,8 @@ namespace CodeplexMigration.IssueMigrator.Templates
 
 
         public string CodeplexAvatar { get; set; }
-        public string OriginalUserName { get; set; }
-        public string OriginalUserUrl { get; set; }
+        //public string OriginalUserName { get; set; }
+        //public string OriginalUserUrl { get; set; }
         public string OriginalDateUtc { get; set; }
         public string OriginalDate { get; set; }
         public string OriginalUrl { get; set; }
@@ -26,7 +26,7 @@ namespace CodeplexMigration.IssueMigrator.Templates
         public string Format()
         {
             var template = GetTemplate(this.TemplateName);
-            
+
             var sb = new StringBuilder(template);
             this.OnFormatTemplate(sb);
             return sb.ToString();
@@ -35,8 +35,8 @@ namespace CodeplexMigration.IssueMigrator.Templates
         protected virtual void OnFormatTemplate(StringBuilder sb)
         {
             sb.Replace("${codeplex_avatar}", this.CodeplexAvatar);
-            sb.Replace("${original_user_name}", this.OriginalUserName);
-            sb.Replace("${original_user_url}", this.OriginalUserUrl);
+            //sb.Replace("${original_user_name}", this.OriginalUserName);
+            //sb.Replace("${original_user_url}", this.OriginalUserUrl);
             sb.Replace("${original_date_utc}", this.OriginalDateUtc);
             sb.Replace("${original_date}", this.OriginalDate);
             sb.Replace("${original_url}", this.OriginalUrl);

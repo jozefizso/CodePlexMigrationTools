@@ -3,15 +3,18 @@ using Newtonsoft.Json;
 
 namespace CodeplexMigration.IssueMigrator.Codeplex
 {
+    /// <summary>
+    ///
+    /// </summary>
+    /// <remarks>
+    /// The author field is not present for comments exported from CodePlex Archive.
+    /// </remarks>
     public class CodeplexComment
     {
-        [JsonProperty("PostedBy")]
-        public string Author { get; set; }
-
         [JsonProperty("Message")]
         public string BodyHtml { get; set; }
 
         [JsonProperty("PostedDate")]
-        public DateTime CreatedAt { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
     }
 }
