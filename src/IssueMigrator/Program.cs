@@ -153,6 +153,11 @@ namespace CodeplexMigration.IssueMigrator
 
                 foreach (var comment in issueDetails.Comments)
                 {
+                    if (String.IsNullOrEmpty(comment.BodyHtml) && String.IsNullOrEmpty(comment.Author))
+                    {
+                        continue;
+                    }
+
                     var commentTemplate = new CommentTemplate();
                     commentTemplate.UserAvatar = GitHubAvatar_CodeplexGuestAvatar_User; // $"https://github.com/identicons/{comment.Author}.png";
                     commentTemplate.OriginalUserName = comment.Author;
