@@ -1,6 +1,8 @@
-﻿<img src="${codeplex_avatar}" align="left" width="96" height="96" />
-Issue from <em datetime="${original_date_utc}">${original_date}</em>
-<em>Originally opened at ${original_url}</em>
+﻿<p>
+  <img src="${codeplex_avatar}" align="left" width="48" height="48" />
+  Issue from <em datetime="${original_date_utc}">${original_date}</em><br>
+  Originally opened at <em>${original_url}</em>
+</p>
 
 ----
 

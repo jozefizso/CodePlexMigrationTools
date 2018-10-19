@@ -1,5 +1,7 @@
-﻿<img src="${user_avatar}" align="left" width="48" height="48" />
-Comment from <em datetime="${original_date_utc}">${original_date}</em>
+﻿<p>
+  <img src="${user_avatar}" align="left" width="32" height="32" />
+  Comment from <em datetime="${original_date_utc}">${original_date}</em>
+</p>
 
 ----
 
